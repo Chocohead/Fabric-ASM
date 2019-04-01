@@ -70,19 +70,12 @@ jar {
 task exampleJar(type: RemappingJar, dependsOn: exampleClasses) {
 	classifier = "example"
 	from sourceSets.example.output
-	//AccessTransformerHelper.copyInAT(project.minecraft, exampleJar);
 }
 
-/*task remapExampleJar(type: RemapJar, dependsOn: exampleJar) {
-	jar = exampleJar.archivePath
-	doLast {
-		
-	}
-}*/
-build.dependsOn exampleJar//remapExampleJar
+build.dependsOn exampleJar
 
 artifacts {
     archives(exampleJar) {
-		builtBy exampleJar//remapExampleJar
+		builtBy exampleJar
 	}
 }
