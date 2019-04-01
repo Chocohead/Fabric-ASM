@@ -1,0 +1,2 @@
+#Example early riser, used to extend Banner Pattern
+com.chocohead.mm.testing.EarlyRiser

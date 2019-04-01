@@ -1,0 +1,14 @@
+{
+	"id": "mme",
+	"name": "Manningham Mills Example",
+	"description": "I swear this actually works",
+	"version": "1.0",
+	"authors": [
+		"Chocohead"
+	],
+	"side": "universal",
+	"initializer": "com.chocohead.mm.testing.ExampleMod",
+	"requires": {
+		"mm": "*"
+	}
+}

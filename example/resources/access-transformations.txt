@@ -1,0 +1,8 @@
+#Test test test
+#net/minecraft/class_4136$class_4137
+net/minecraft/village/VillagerGossips$Reputation
+net/minecraft/village/VillagerGossips$Reputation <init>()V
+
+#It's basically just Math.max
+#net/minecraft/class_4136 method_19059(II)I
+net/minecraft/village/VillagerGossips max(II)I
