@@ -47,11 +47,6 @@ public class CasualStreamHandler extends URLStreamHandler {
 
 	private final Map<String, byte[]> providers;
 
-	/*static void preload() {
-		//Entertaining hack to ensure CasualConnection is classloaded
-		new CasualConnection(null, null);
-	}*/
-
 	public static URL create(String name, byte[] stream) {
 		return create(Collections.singletonMap('/' + name.replace('.', '/') + ".class", stream));
 	}
@@ -77,22 +72,4 @@ public class CasualStreamHandler extends URLStreamHandler {
 		//System.out.println("### PASSED ###");
 		return new CasualConnection(url, providers.get(url.getPath()));
 	}
-
-	/*@Override
-	protected boolean sameFile(URL u1, URL u2) {
-		System.out.println("Comparing files " + u1.getFile() + " and " + u2.getFile());
-		return super.sameFile(u1, u2);
-	}
-
-	@Override
-	protected boolean equals(URL u1, URL u2) {
-		System.out.println("Comparing " + u1 + " and " + u2);
-		return super.equals(u1, u2);
-	}
-
-	@Override
-	protected void parseURL(URL u, String spec, int start, int limit) {
-		System.out.println("Parsing URL: " + u + " with " + spec);
-		super.parseURL(u, spec, start, limit);
-	}*/
 }

@@ -34,23 +34,6 @@ import com.chocohead.mm.api.EnumAdder.EnumAddition;
 public class EnumExtender {
 	public static final Map<String, Object[]> POOL = new HashMap<>();
 
-	/*static {{
-		Object[] stuff = POOL.get("my_cache_key");
-		x = new EnumExtender(stuff[0], (String) stuff[1], (int) stuff[2], (boolean) stuff[3], (short) stuff[4], (byte) stuff[5], (long) stuff[6], (float) stuff[7], (double) stuff[8], (char) stuff[8]);
-	} {
-		Object[] stuff = POOL.get("my_other_cache_key");
-		new EnumExtender(stuff[0], (String) stuff[1], (int) stuff[2]);
-	}
-	}
-
-	static EnumExtender x;
-	public EnumExtender(Object a, String b, int cast) {
-		// TODO Auto-generated constructor stub
-	}
-
-	public EnumExtender(Object a, String b, int cast, boolean cast2, short cast3, byte cast4, long cast5, float cast6, double cast7, char cast8) {
-		// TODO Auto-generated constructor stub
-	}*/
 
 	static Consumer<ClassNode> makeEnumExtender(EnumAdder builder) {
 		return node -> {

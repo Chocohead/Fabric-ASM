@@ -70,42 +70,12 @@ public class Plugin implements IMixinConfigPlugin {
 			throw new RuntimeException("Couldn't get handle for " + addUrlMethod, e);
 		}
 	}
-	//private final Map<String, Set<String>> transforms = new HashMap<>();
 	final List<String> mixins = new ArrayList<>();
 	private Map<String, Set<Consumer<ClassNode>>> classModifiers;
-
-	/*private static void insertOar() {
-		MixinTransformer mt = fishForFields(Plugin.class.getClassLoader(), MixinTransformer.class);
-		if (mt == null) throw new IllegalStateException("Things have gone poorly");
-
-		//LOGGER.info("Honestly it's fine, I wouldn't be worried");
-
-		Extensions exts = fishForFields(mt, Extensions.class); //It's private and final
-		if (exts == null) throw new IllegalStateException("Surely this must exist :|");
-
-		exts.add(Generator.instance);
-	}
-
-	private static <T> T fishForFields(Object pool, Class<T> type) {
-		try {
-			for (Field f : pool.getClass().getDeclaredFields()) {
-				if (f.getType() == type) {
-					//LOGGER.debug("Found a good looking target called " + f.getName());
-					f.setAccessible(true);
-					return type.cast(f.get(pool));
-				}
-			}
-			throw new RuntimeException("Failed fishing trip for " + type + " in " + pool.getClass());
-		} catch (ReflectiveOperationException e) {
-			throw new RuntimeException("Failed to get up to no good", e);
-		}
-	}*/
 
 	@Override
 	public void onLoad(String rawMixinPackage) {
 		String mixinPackage = rawMixinPackage.replace('.', '/');
-		//Generator.fire(mixinPackage.replace('.', '/')); //Kick off the generator preemptively
-		//insertOar();
 
 		Map<String, Set<String>> transforms = new HashMap<>();
 		try {
@@ -145,15 +115,11 @@ public class Plugin implements IMixinConfigPlugin {
 		/*transforms.computeIfAbsent("net.minecraft.client.MinecraftClient", k -> new HashSet<>()).add("<*>");
 		transforms.computeIfAbsent("net.minecraft.entity.passive.SheepEntity", k -> new HashSet<>()).add("<*>");
 		transforms.computeIfAbsent("net.minecraft.client.gui.ingame.CreativePlayerInventoryScreen$CreativeSlot", k -> new HashSet<>()).add("<*>");*/
-		//transforms.keySet().stream().map(name -> mixinPackage + name).forEach(this.transforms::add);*/
 
 		for (Entry<String, Set<String>> entry : transforms.entrySet()) {
 			//System.out.println("Adding transformation " + entry.getKey() + " => " + entry.getValue());
 			ClassTinkerers.addTransformation(entry.getKey(), makeAT(entry.getValue()));
 		}
-
-		//CasualStreamHandler.preload();
-		//Map<String, byte[]> mixins = transforms.keySet().stream().map(name -> (mixinPackage + name).replace('.', '/')).collect(Collectors.toMap(name -> '/' + name + ".class", Generator.instance::generate));
 
 		Map<String, byte[]> classGenerators = new HashMap<>();
 		Map<String, Set<Consumer<ClassNode>>> classModifiers = new HashMap<String, Set<Consumer<ClassNode>>>() {
