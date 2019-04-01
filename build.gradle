@@ -1,0 +1,88 @@
+buildscript {
+    repositories {
+    	jcenter()
+		maven {
+            url = uri("../Loom/build/repo")
+        }
+        maven {
+	        name = "Fabric"
+	        url = "https://maven.fabricmc.net/"
+        }
+		maven {
+			name = "Forge"
+			url = "https://files.minecraftforge.net/maven/"
+		}
+		maven { 
+			name = "Jitpack"
+			url 'https://jitpack.io/'
+		}
+	}
+	dependencies {
+        classpath 'net.fabricmc:fabric-loom:0.2.0-SNAPSHOT'
+	}
+}
+
+apply plugin: "fabric-loom"
+import net.fabricmc.loom.task.RemappingJar;
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+archivesBaseName = "Manningham Mills"
+version = "1.2"
+
+minecraft {
+	refmapName = "mixins.mm.refmap.json"
+	AT = file("example/resources/access-transformations.txt")
+}
+
+dependencies {
+	minecraft "com.mojang:minecraft:19w13a"
+	mappings "net.fabricmc:yarn:19w13a.2:tiny@gz"
+	modCompile "net.fabricmc:fabric-loader:0.3.7.109"
+}
+
+sourceSets {
+	main {
+		java {
+			srcDir 'src'
+		}
+		resources {
+			srcDir 'resources'
+		}
+	}
+	example {
+		compileClasspath += main.compileClasspath + main.output 
+		java {
+			srcDir 'example/src'
+		}
+		resources {
+			srcDir 'example/resources'
+			exclude "access-transformations.txt"
+		}
+	}
+}
+
+jar {
+	AT.include = false
+}
+
+task exampleJar(type: RemappingJar, dependsOn: exampleClasses) {
+	classifier = "example"
+	from sourceSets.example.output
+	//AccessTransformerHelper.copyInAT(project.minecraft, exampleJar);
+}
+
+/*task remapExampleJar(type: RemapJar, dependsOn: exampleJar) {
+	jar = exampleJar.archivePath
+	doLast {
+		
+	}
+}*/
+build.dependsOn exampleJar//remapExampleJar
+
+artifacts {
+    archives(exampleJar) {
+		builtBy exampleJar//remapExampleJar
+	}
+}

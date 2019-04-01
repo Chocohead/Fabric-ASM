@@ -1,0 +1,16 @@
+{
+	"id": "mm",
+	"name": "Manningham Mills",
+	"description": "The mod to do what asie said Fabric shouldn't allow you to do",
+	"version": "1.0",
+	"authors": [
+		"Chocohead"
+	],
+	"side": "universal",
+	"initializer": "com.chocohead.mm.MM",
+	"requires": {
+	},
+	"mixins": {
+		"common": "mixins.mm.json"
+	}
+}
