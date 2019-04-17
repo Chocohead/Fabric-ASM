@@ -1,14 +1,29 @@
 {
+	"schemaVersion": 1,
 	"id": "mme",
 	"name": "Manningham Mills Example",
 	"description": "I swear this actually works",
-	"version": "1.0",
+	"version": "2",
 	"authors": [
 		"Chocohead"
 	],
-	"side": "universal",
-	"initializer": "com.chocohead.mm.testing.ExampleMod",
+	"contact": {
+		"sources": "https://github.com/Chocohead/Fabric-ASM/example",
+		"issues": "https://github.com/Chocohead/Fabric-ASM/issues"
+	},
+	"license": "MPL-2.0",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"com.chocohead.mm.testing.ExampleMod"
+		]
+	},
+	"custom": {
+		"mm:early_risers": [
+			"com.chocohead.mm.testing.EarlyRiser"
+		]
+	},
 	"requires": {
-		"mm": "*"
+		"mm": ">=1.4"
 	}
 }

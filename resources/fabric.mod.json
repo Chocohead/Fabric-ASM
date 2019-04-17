@@ -1,16 +1,27 @@
 {
+	"schemaVersion": 1,
 	"id": "mm",
 	"name": "Manningham Mills",
 	"description": "The mod to do what asie said Fabric shouldn't allow you to do",
-	"version": "1.0",
+	"version": "1.4",
 	"authors": [
 		"Chocohead"
 	],
-	"side": "universal",
-	"initializer": "com.chocohead.mm.MM",
-	"requires": {
+	"contact": {
+		"sources": "https://github.com/Chocohead/Fabric-ASM",
+		"issues": "https://github.com/Chocohead/Fabric-ASM/issues"
 	},
-	"mixins": {
-		"common": "mixins.mm.json"
-	}
+	"license": "MPL-2.0",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"com.chocohead.mm.MM"
+		]
+	},
+	"requires": {
+		"fabricloader": ">=0.4.0"
+	},
+	"mixins": [{
+		"config": "mixins.mm.json"
+	}]
 }

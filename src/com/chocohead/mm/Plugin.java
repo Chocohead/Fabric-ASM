@@ -39,6 +39,11 @@ import org.spongepowered.asm.lib.tree.MethodNode;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
 
+import com.google.gson.JsonElement;
+
+import net.fabricmc.loader.api.FabricLoader;
+import net.fabricmc.loader.api.ModContainer;
+
 import com.chocohead.mm.api.ClassTinkerers;
 import com.chocohead.mm.api.EnumAdder;
 
@@ -262,24 +267,18 @@ public class Plugin implements IMixinConfigPlugin {
 	@Override
 	public List<String> getMixins() {
 		//System.out.println("Have " + mixins);
-		try {
-			Enumeration<URL> urls = MM.class.getClassLoader().getResources("early_risers.txt");
-			while (urls.hasMoreElements()) {
-				URL url = urls.nextElement();
-
-				try (Scanner scanner = new Scanner(url.openStream())) {
-					while (scanner.hasNextLine()) {
-						String line = scanner.nextLine().trim();
-						if (line.isEmpty() || line.startsWith("#")) continue;
-
-						Class.forName(line).asSubclass(Runnable.class).newInstance().run();
+		//Entry points are only created once the game starts, which is way too late if we want to be transforming the game
+		//FabricLoader.getInstance().getEntrypoints("mm:early_riser", Runnable.class).forEach(Runnable::run);
+		for (ModContainer mod : FabricLoader.getInstance().getAllMods()) {
+			if (mod.getMetadata().containsCustomElement("mm:early_risers")) {
+				for (JsonElement riser : mod.getMetadata().getCustomElement("mm:early_risers").getAsJsonArray()) {
+					try {
+						Class.forName(riser.getAsString()).asSubclass(Runnable.class).newInstance().run();
+					} catch (ReflectiveOperationException e) {
+						throw new RuntimeException("Error loading early riser", e);
 					}
-				} catch (ReflectiveOperationException e) {
-					throw new RuntimeException("Error loading early riser", e);
 				}
 			}
-		} catch (IOException e) {
-			throw new RuntimeException("Error finding early risers", e);
 		}
 		//System.out.println("Now have " + mixins);
 		return mixins;
