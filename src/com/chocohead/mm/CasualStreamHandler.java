@@ -68,7 +68,7 @@ public class CasualStreamHandler extends URLStreamHandler {
 	protected URLConnection openConnection(URL url) throws IOException {
 		//System.out.println(providers.keySet());
 		//System.out.println("Open connection on " + url.getPath());
-		if (!providers.containsKey(url.getPath())) throw new IOException(); //Who?
+		if (!providers.containsKey(url.getPath())) return null; //Who?
 		//System.out.println("### PASSED ###");
 		return new CasualConnection(url, providers.get(url.getPath()));
 	}
