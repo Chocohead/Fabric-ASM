@@ -87,6 +87,31 @@ public class EnumAdder {
 		this(type, Arrays.stream(parameterTypes).map(Type::getType).toArray(Type[]::new));
 	}
 
+	/**
+	 * New {@link EnumAdder}s can be made via {@link ClassTinkerers#enumBuilder(String, Object...)}
+	 *
+	 * @param enumType The name of the enum to be extended
+	 * @param parameterTypes The type or name of parameters the constructor to be used takes
+	 *
+	 * @throws IllegalArgumentException If any of the given parameter types are invalid
+	 */
+	EnumAdder(String enumType, Object... parameterTypes) {
+		this(enumType, Arrays.stream(parameterTypes).map(type -> {
+			if (type.getClass() == Type.class) {
+				return (Type) type;
+			} else if (type.getClass() == String.class) {
+				return Type.getType(((String) type).replace('.', '/'));
+			} else if (type.getClass() == Class.class) {
+				if (((Class<?>) type).getName().startsWith("net.minecraft.")) {
+					throw new IllegalArgumentException("Early loaded " + ((Class<?>) type).getName());
+				}
+				return Type.getType((Class<?>) type);
+			} else {
+				throw new IllegalArgumentException("Unsure how to map parameter type " + type.getClass() + " (from " + type + ')');
+			}
+		}).toArray(Type[]::new));
+	}
+
 	private EnumAdder(String type, Type[] parameterTypes) {
 		this.type = type;
 		this.parameterTypes = parameterTypes;

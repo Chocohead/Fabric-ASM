@@ -15,6 +15,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 import org.apache.commons.lang3.ArrayUtils;
+import org.spongepowered.asm.lib.Type;
 import org.spongepowered.asm.lib.tree.ClassNode;
 
 /**
@@ -74,7 +75,7 @@ public enum ClassTinkerers {
 
 	/**
 	 * Create a new {@link EnumAdder} in order to add additional Enum entries to the given type name.
-	 * <p>Nothing will be done if the given Enum type has already been loaded.<p>
+	 * <p>Nothing will be done if the given Enum type has already been loaded.</p>
 	 * <p><b>Will crash if any of the parameter types are from Minecraft to avoid early class loading</b>
 	 *
 	 * @param type The name of the enum to be extended
@@ -100,7 +101,7 @@ public enum ClassTinkerers {
 
 	/**
 	 * Create a new {@link EnumAdder} in order to add additional Enum entries to the given type name.
-	 * <p>Nothing will be done if the given Enum type has already been loaded.<p>
+	 * <p>Nothing will be done if the given Enum type has already been loaded.</p>
 	 *
 	 * @param type The name of the enum to be extended
 	 * @param parameterTypes The <b>internal names</b> of the parameter types the constructor to be used takes
@@ -115,6 +116,34 @@ public enum ClassTinkerers {
 			throw new IllegalArgumentException("Invalid parameter array: " + Arrays.toString(parameterTypes));
 
 		return new EnumAdder(type.replace('.', '/'), Arrays.stream(parameterTypes).map(param -> param.replace('.', '/')).toArray(String[]::new));
+	}
+
+	/**
+	 * Create a new {@link EnumAdder} in order to add additional Enum entries to the given type name
+	 *
+	 * <p>The given parameter types can be any mix of
+	 * 	<ul>
+	 * 		<li>{@link Class} - <b>Will crash if a Minecraft class to avoid early class loading</b>
+	 * 		<li>{@link String} - Given as <b>internal names</b> (ie <code>Lmy/package/class;</code> or <code>I</code>)
+	 * 		<li>{@link Type} - Making sure to use the Mixin repackaged one
+	 * 	</ul>
+	 * 	So that it matches the constructor that is wanted to be used.</p>
+	 *
+	 * <p>Nothing will be done if the given Enum type has already been loaded.</p>
+	 *
+	 * @param type The name of the enum to be extended
+	 * @param parameterTypes The type or internal names of the parameter types the constructor to be used takes
+	 * @return A builder for which additional entries can be defined
+	 *
+	 * @throws NullPointerException If type is null
+	 * @throws IllegalArgumentException If parameterTypes is or contains null, or is invalidly specified
+	 */
+	public static EnumAdder enumBuilder(String type, Object... parameterTypes) {
+		if (type == null) throw new NullPointerException("Tried to add onto a null type!");
+		if (parameterTypes == null || ArrayUtils.contains(parameterTypes, null))
+			throw new IllegalArgumentException("Invalid parameter array: " + Arrays.toString(parameterTypes));
+
+		return new EnumAdder(type.replace('.', '/'), parameterTypes);
 	}
 
 	/**
