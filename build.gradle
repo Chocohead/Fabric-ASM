@@ -2,9 +2,6 @@ buildscript {
     repositories {
     	jcenter()
 		maven {
-            url = uri("../Loom/build/repo")
-        }
-        maven {
 	        name = "Fabric"
 	        url = "https://maven.fabricmc.net/"
         }
@@ -18,7 +15,7 @@ buildscript {
 		}
 	}
 	dependencies {
-        classpath 'net.fabricmc:fabric-loom:0.2.0-SNAPSHOT'
+        classpath 'com.github.Chocohead:fabric-loom:4e7f1b9'
 	}
 }
 
