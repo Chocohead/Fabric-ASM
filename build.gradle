@@ -1,10 +1,10 @@
 buildscript {
-    repositories {
-    	jcenter()
+	repositories {
+		jcenter()
 		maven {
-	        name = "Fabric"
-	        url = "https://maven.fabricmc.net/"
-        }
+			name = "Fabric"
+			url = "https://maven.fabricmc.net/"
+		}
 		maven {
 			name = "Forge"
 			url = "https://files.minecraftforge.net/maven/"
