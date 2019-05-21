@@ -232,7 +232,7 @@ public class EnumExtender {
 
 			clinit.instructions.set(newArray, instructionForValue(currentOrdinal));
 			clinit.maxLocals = Math.max(clinit.maxLocals, 1);
-			clinit.maxStack = Math.min(clinit.maxStack, builder.parameterTypes.length + 2 + 1); //+2 for String, int and +1 for POOL index
+			clinit.maxStack = Math.max(clinit.maxStack, builder.parameterTypes.length + 2 + 1); //+2 for String, int and +1 for POOL index
 		};
 	}
 
