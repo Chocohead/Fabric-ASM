@@ -22,10 +22,6 @@ buildscript {
 apply plugin: "fabric-loom"
 import net.fabricmc.loom.task.RemappingJar;
 
-task wrapper(type: Wrapper) {
-	gradleVersion = '4.9'
-}
-
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
