@@ -15,7 +15,7 @@ buildscript {
 		}
 	}
 	dependencies {
-        classpath 'com.github.Chocohead:fabric-loom:5ed2377'
+        classpath 'com.github.Chocohead:fabric-loom:f2fc524'
 	}
 }
 
@@ -69,10 +69,18 @@ task exampleJar(type: RemappingJar, dependsOn: exampleClasses) {
 	from sourceSets.example.output
 }
 
+task sourcesJar(type: Jar, dependsOn: classes) {
+	classifier = "sources"
+	from sourceSets.main.allSource
+}
+
 build.dependsOn exampleJar
 
 artifacts {
-    archives(exampleJar) {
+	archives(exampleJar) {
 		builtBy exampleJar
+	}
+	archives(sourcesJar) {
+		builtBy sourcesJar
 	}
 }
