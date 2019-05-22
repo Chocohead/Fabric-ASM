@@ -46,8 +46,10 @@ import com.chocohead.mm.api.ClassTinkerers;
 import com.chocohead.mm.api.EnumAdder;
 
 public class Plugin implements IMixinConfigPlugin {
-	private static final Consumer<URL> addURL;
-	static {
+	final List<String> mixins = new ArrayList<>();
+	private Map<String, Set<Consumer<ClassNode>>> classModifiers;
+
+	private static Consumer<URL> fishAddURL() {
 		ClassLoader loader = Plugin.class.getClassLoader();
 		Method addUrlMethod = null;
 		for (Method method : loader.getClass().getDeclaredMethods()) {
@@ -62,7 +64,7 @@ public class Plugin implements IMixinConfigPlugin {
 		try {
 			addUrlMethod.setAccessible(true);
 			MethodHandle handle = MethodHandles.lookup().unreflect(addUrlMethod);
-			addURL = url -> {
+			return url -> {
 				try {
 					handle.invoke(loader, url);
 				} catch (Throwable t) {
@@ -73,8 +75,6 @@ public class Plugin implements IMixinConfigPlugin {
 			throw new RuntimeException("Couldn't get handle for " + addUrlMethod, e);
 		}
 	}
-	final List<String> mixins = new ArrayList<>();
-	private Map<String, Set<Consumer<ClassNode>>> classModifiers;
 
 	@Override
 	public void onLoad(String rawMixinPackage) {
@@ -187,9 +187,9 @@ public class Plugin implements IMixinConfigPlugin {
 				throw new UnsupportedOperationException();
 			}
 		};
-		ClassTinkerers.INSTANCE.hookUp(new UnremovableMap<>(classGenerators), new UnremovableMap<>(classModifiers), enumExtenders);
+		ClassTinkerers.INSTANCE.hookUp(fishAddURL(), new UnremovableMap<>(classGenerators), new UnremovableMap<>(classModifiers), enumExtenders);
 
-		addURL.accept(CasualStreamHandler.create(classGenerators));
+		ClassTinkerers.addURL(CasualStreamHandler.create(classGenerators));
 		this.classModifiers = classModifiers;
 
 		//System.out.println("Loaded initially with: " + classModifiers);

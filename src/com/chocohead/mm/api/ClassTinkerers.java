@@ -7,12 +7,15 @@
  */
 package com.chocohead.mm.api;
 
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.spongepowered.asm.lib.Type;
@@ -32,10 +35,16 @@ import org.spongepowered.asm.lib.tree.ClassNode;
 public enum ClassTinkerers {
 	INSTANCE;
 
+	private Predicate<URL> urlers = url -> false;
 	private Map<String, byte[]> clazzes = new HashMap<>();
 	private Map<String, Set<Consumer<ClassNode>>> tinkerers = new HashMap<>();
 	private Set<EnumAdder> enumExtensions = new HashSet<>();
-	public void hookUp(Map<String, byte[]> liveClassMap, Map<String, Set<Consumer<ClassNode>>> liveTinkerers, Set<EnumAdder> liveEnums) {
+	public void hookUp(Consumer<URL> liveURL, Map<String, byte[]> liveClassMap, Map<String, Set<Consumer<ClassNode>>> liveTinkerers, Set<EnumAdder> liveEnums) {
+		urlers = url -> {
+			liveURL.accept(url);
+			return true;
+		};
+
 		liveClassMap.putAll(clazzes);
 		clazzes = liveClassMap;
 
@@ -44,6 +53,20 @@ public enum ClassTinkerers {
 
 		liveEnums.addAll(enumExtensions);
 		enumExtensions = liveEnums;
+	}
+
+	/**
+	 * Adds the given {@link URL} to the mod {@link URLClassLoader}'s list used to search for mod classes and resources
+	 *
+	 * <p>A {@code false} return value means this has been invoked too early in the loading process and the addition failed
+	 * <p>If the given {@link URL} is {@code null} or is already in the list, this will have no effect
+	 * but will still return {@link true} if it would have otherwise succeeded.
+	 *
+	 * @param url The URL to be added to the search path of URLs
+	 * @return Whether the URL has been given to the classloader
+	 */
+	public static boolean addURL(URL url) {
+		return INSTANCE.urlers.test(url);
 	}
 
 	/**
