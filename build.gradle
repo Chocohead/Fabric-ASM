@@ -26,7 +26,7 @@ sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
 archivesBaseName = "Manningham Mills"
-version = "1.5"
+version = "1.6"
 
 minecraft {
 	refmapName = "mixins.mm.refmap.json"
