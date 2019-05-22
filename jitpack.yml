@@ -1,2 +1,2 @@
 before_install:
-   - gradle wrapper --gradle-version 4.9 --distribution-type bin
+   - gradle wrapper --gradle-version 4.9 --no-daemon --stacktrace
