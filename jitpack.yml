@@ -1,0 +1,4 @@
+before_install:
+   - mv build.gradle temp.gradle
+   - gradle wrapper --gradle-version 4.9 --no-daemon --stacktrace
+   - mv temp.gradle build.gradle
