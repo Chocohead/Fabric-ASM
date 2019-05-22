@@ -1,2 +1,2 @@
 before_install:
-   - ./gradlew wrapper
+   - gradle wrapper
