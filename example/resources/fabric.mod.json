@@ -3,7 +3,7 @@
 	"id": "mme",
 	"name": "Manningham Mills Example",
 	"description": "I swear this actually works",
-	"version": "2",
+	"version": "3",
 	"authors": [
 		"Chocohead"
 	],
@@ -23,7 +23,7 @@
 			"com.chocohead.mm.testing.EarlyRiser"
 		]
 	},
-	"requires": {
-		"mm": ">=1.6"
+	"depends": {
+		"mm": ">=1.7"
 	}
 }
