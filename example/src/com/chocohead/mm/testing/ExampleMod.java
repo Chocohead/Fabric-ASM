@@ -11,6 +11,8 @@ import net.minecraft.block.entity.BannerPattern;
 import net.minecraft.village.VillagerGossips;
 import net.minecraft.village.VillagerGossips.Reputation;
 
+import java.util.Arrays;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -35,5 +37,7 @@ public class ExampleMod implements ModInitializer {
 		for (BannerPattern banner : BannerPattern.values()) {
 			LOGGER.debug(banner.ordinal() + " => " + banner);
 		}
+
+		LOGGER.info("Generic BannerPattern interfaces: " + Arrays.toString(BannerPattern.class.getGenericInterfaces()));
 	}
 }

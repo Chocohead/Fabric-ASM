@@ -10,9 +10,11 @@ package com.chocohead.mm;
 import java.io.IOException;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -25,6 +27,7 @@ import java.util.Scanner;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassWriter;
@@ -34,8 +37,10 @@ import org.objectweb.asm.Type;
 import org.spongepowered.asm.lib.tree.ClassNode;
 import org.spongepowered.asm.lib.tree.InnerClassNode;
 import org.spongepowered.asm.lib.tree.MethodNode;
+import org.spongepowered.asm.mixin.MixinEnvironment;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
+import org.spongepowered.asm.mixin.transformer.ext.Extensions;
 
 import com.google.gson.JsonElement;
 
@@ -193,6 +198,29 @@ public class Plugin implements IMixinConfigPlugin {
 		this.classModifiers = classModifiers;
 
 		//System.out.println("Loaded initially with: " + classModifiers);
+
+		Object transformer = MixinEnvironment.getCurrentEnvironment().getActiveTransformer();
+		if (transformer == null) throw new IllegalStateException("Not running with a transformer?");
+
+		Extensions extensions = null;
+		try {
+			for (Field f : transformer.getClass().getDeclaredFields()) {
+				if (f.getType() == Extensions.class) {
+					f.setAccessible(true); //Knock knock, we need this
+					extensions = (Extensions) f.get(transformer);
+					break;
+				}
+			}
+
+			if (extensions == null) {
+				String foundFields = Arrays.stream(transformer.getClass().getDeclaredFields()).map(f -> f.getType() + " " + f.getName()).collect(Collectors.joining(", "));
+				throw new NoSuchFieldError("Unable to find extensions field, only found " + foundFields);
+			}
+		} catch (ReflectiveOperationException e) {
+			throw new IllegalStateException("Running with a transformer that doesn't have extensions?", e);
+		}
+
+		extensions.add(new Extension(mixinPackage));
 	}
 
 	static byte[] makeMixinBlob(String name, Collection<? extends String> targets) {
