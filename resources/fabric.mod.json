@@ -8,6 +8,7 @@
 		"Chocohead"
 	],
 	"contact": {
+		"homepage": "https://github.com/Chocohead/Fabric-ASM",
 		"sources": "https://github.com/Chocohead/Fabric-ASM",
 		"issues": "https://github.com/Chocohead/Fabric-ASM/issues"
 	},
