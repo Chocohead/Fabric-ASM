@@ -8,6 +8,7 @@
 package com.chocohead.mm.testing;
 
 import net.minecraft.block.entity.BannerPattern;
+import net.minecraft.text.event.ClickEvent.Action;
 import net.minecraft.village.VillagerGossips;
 import net.minecraft.village.VillagerGossips.Reputation;
 
@@ -39,5 +40,12 @@ public class ExampleMod implements ModInitializer {
 		}
 
 		LOGGER.info("Generic BannerPattern interfaces: " + Arrays.toString(BannerPattern.class.getGenericInterfaces()));
+
+		Action action = Action.get("test_command");
+		LOGGER.info("Test click action: " + action + " with ordinal " + action.ordinal());
+
+		for (TestEnum test : TestEnum.values()) {
+			LOGGER.debug(test.ordinal() + " => " + test);
+		}
 	}
 }
