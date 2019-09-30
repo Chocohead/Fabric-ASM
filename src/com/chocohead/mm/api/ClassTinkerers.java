@@ -64,6 +64,8 @@ public enum ClassTinkerers {
 	 *
 	 * @param url The URL to be added to the search path of URLs
 	 * @return Whether the URL has been given to the classloader
+	 *
+	 * @since 1.6
 	 */
 	public static boolean addURL(URL url) {
 		return INSTANCE.urlers.test(url);
