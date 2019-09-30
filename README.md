@@ -12,7 +12,7 @@ A mod's access transformer is defined by [Loom](https://github.com/Chocohead/fab
 The provided example's AT is defined in the `build.gradle` [here](https://github.com/Chocohead/Fabric-ASM/blob/master/build.gradle#L36).
 
 ### Structuring Sensibly
-Within the context of Fabric, access transformers are only really needed to make classes public (to allow them to be directly referenced and thus possibly extended) and methods public (to allow them to be extended, especially for constructors). Thus a more simplifed format of access transformers is used in MM to account for not needing to handle fields or non-public transformations.
+Within the context of Fabric, access transformers are only really needed to make classes public (to allow them to be directly referenced and thus possibly extended) and methods public (to allow them to be extended, especially for constructors). Thus a more simplified format of access transformers is used in MM to account for not needing to handle fields or non-public transformations.
 
 ```
 # Any line starting with a hash are ignored
@@ -70,7 +70,7 @@ Access transformers are pretty neat and all, but they still have limits. You can
 
 ## Exploiting Extender's Cove
 ### Waiting for High Tide
-Registering additions that want to be made has to happen very early on in the mod loading process. As a result it is quite reasonable that a given mod's initialisers are yet to be run. To resolve this (and the class loading pitfalls described below), MM has a system of "Early Risers" which are classes that implement `Runnable` and are called as early as when necessary.
+Registering additions that want to be made has to happen very early on in the mod loading process. As a result it is quite reasonable to expect that a given mod's initialisers are yet to be run. To resolve this (and the class loading pitfalls described below), MM has a system of "Early Risers" which are classes that implement `Runnable` and are called as early as when necessary.
 
 Early Risers are defined via a custom property in a mod's `fabric.mod.json`. The key is `mm:early_risers` whilst the value is an array of class name strings. Putting anything else there will result in an `IllegalStateException` being thrown whilst trying to parse the class names. The provided example's Early Riser definition is [here](https://github.com/Chocohead/Fabric-ASM/blob/master/example/resources/fabric.mod.json#L22-L24).
 
@@ -90,12 +90,12 @@ Whilst on the surface it may appear a subtle difference between taking a `Class`
 The first method is practically easier to use. The variable argument represents the parameter types the desired `enum` constructor takes that is wanted to be used, thus is it only natural that `Class` arguments are passed in. For Java or library types this is all fine, but when it comes to Minecraft types this poses a big problem. By mentioning the class it has to be class loaded so Java definitely knows it exists (as well as to know the properties of the definition). `ClassTinkerers` therefore checks for if any of the passed in classes are in the `net.minecraft` package and will crash if they are. This is of course a tad crude considering there are classes like `GlStateManager` that are not in the package but are still Mixinable, but it's better than nothing to try save compatibility.
 
 #### The Safe Way In
-The second method requires a little more effort. Like the first, the variable arguments represents the parameter types for the desired constructor. But unlike the first, instead of using the `Class` object it uses the internal name (similar to Mixin). This is obviously less safe as classes have different names for development enviroments compared to the game normally running but this is the price you pay. The benefit (as you might have guessed) is that using the internal names bypasses class loading as Java doesn't need to know the types exist even when it goes looking for the constructor.
+The second method requires a little more effort. Like the first, the variable arguments represents the parameter types for the desired constructor. But unlike the first, instead of using the `Class` object it uses the internal name (similar to Mixin). This is obviously less safe as classes have different names for development environments compared to the game normally running but this is the price you pay. The benefit (as you might have guessed) is that using the internal names bypasses class loading as Java doesn't need to know the types exist even when it goes looking for the constructor.
 
 It's important to remember that (slightly confusingly) the first argument is not the internal name of the `enum` but the normal class name. This is partly for consistency between the methods and partly because the internal name would be a little unhelpful given only the class name is actually needed to find the `enum` being extended.
 
 #### The Lazy Way In
-The third method is in effect a combination of the other two. Like the others, the variable arguments represents the parameter types for the desired constructor. Those types however can be specified either as a `Class` or the internal name `String`. This offers the best of both worlds in that non-Minecraft classes can be specified directly without forcing the Minecraft ones to also be. Always nice to have choices.
+The third method is in effect a combination of the other two. Like the others, the variable argument represents the parameter types for the desired constructor. Those types however can be specified either as a `Class` or the internal name `String`. This offers the best of both worlds in that non-Minecraft classes can be specified directly without forcing the Minecraft ones to also be. Always nice to have choices.
 
 ### Docking at the Jetty
 Regardless of which of the methods you use, the resulting return object will be an [`EnumAdder`](https://github.com/Chocohead/Fabric-ASM/blob/master/src/com/chocohead/mm/api/EnumAdder.java) for your chosen `enum` constructor. It allows adding as many values as you theoretically want, once again with a choice of methods to do so:
@@ -113,7 +113,7 @@ If an invalid (normally wrongly defined) constructor is specified and attempted 
 
 There is also a degree of trust that the given parameter objects actually match the types the constructor is expecting, you'll get `ClassCastException`s if they aren't. Supplying the wrong number of parameters relative to what the constructor takes will result in an `IllegalArgumentException`.
 
-### Pundering the Booty
+### Plundering the Booty
 Since adding to an `enum` is done during class loading, getting the entries is likely to need to happen elsewhere in the code base. In fact it should happen elsewhere, as class loading the enum you're trying to add onto is quite foolish. MM adds a utility method for getting added entries: [`ClassTinkerers#getEnum(Class, String)`](https://github.com/Chocohead/Fabric-ASM/blob/master/example/src/com/chocohead/mm/testing/ExampleMod.java#L32). It is fail fast, so any problems adding onto the `enum` that weren't picked up during transforming will make themselves clear there. Also worth caching the result if you're using it in more than one place as it is `O(n)` with `n` how big the given `enum` is.
 
 The provided example uses this [here](https://github.com/Chocohead/Fabric-ASM/blob/master/example/src/com/chocohead/mm/testing/ExampleMod.java#L32).
@@ -126,7 +126,7 @@ Say you're getting a feeling for the Mixinless world and want to go deeper. The 
 ### Class Generation
 The first step to ASM enlightenment is to be able to generate whatever class you want. Whilst of course trying to redefine classes that already exist isn't going to work out, there's a practically infinite pool of alternative class names you can come up with to generate whatever you want. What's more classes can be generated at any time, as soon as there's a definition registered they can be loaded and used.
 
-Defining a class is as simple as picking the name, then giving that and the class bytes to [`ClassTinkerers#define(String, byte[])`](https://github.com/Chocohead/Fabric-ASM/blob/master/src/com/chocohead/mm/api/ClassTinkerers.java#L57). The class bytes can be generated using the standard ASM `ClassWriter`, it's not really anticipated that you'll manually work out what you need. If a class with the given name has already been defined using the method it will skip the additional defintion and return `false`. If a class already exists on the classpath with the same name the behaviour is undefined (don't do that).
+Defining a class is as simple as picking the name, then giving that and the class bytes to [`ClassTinkerers#define(String, byte[])`](https://github.com/Chocohead/Fabric-ASM/blob/master/src/com/chocohead/mm/api/ClassTinkerers.java#L57). The class bytes can be generated using the standard ASM `ClassWriter`, it's not really anticipated that you'll manually work out what you need. If a class with the given name has already been defined using the method it will skip the additional definition and return `false`. If a class already exists on the classpath with the same name the behaviour is undefined (don't do that).
 
 ### Class Modification
 Now classes can be defined at will, ASM enlightenment is surely closer. But to create a new class is not nearly as powerful as to change an existing one as desired. Sure if the class has been loaded it's too late, but to transform a class (before that point) without being limited by Mixins is the ultimate goal.
