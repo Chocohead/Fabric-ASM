@@ -177,6 +177,17 @@ public class EnumAdder {
 	}
 
 	/**
+	 * Gets if there are any additional constructor parameters beyond the minimum of a name
+	 *
+	 * @return Whether {@link #parameterTypes} is non-empty
+	 *
+	 * @since 1.8
+	 */
+	public boolean hasParameters() {
+		return parameterTypes.length > 0;
+	}
+
+	/**
 	 * Mark this as complete, registers the changes to actually be applied during class load
 	 */
 	public void build() {

@@ -130,12 +130,14 @@ public class EnumExtender {
 				String poolKey = builder.type + '#' + addition.name; //As unique as the field name is
 				InsnList method = new InsnList();
 
-				method.add(new FieldInsnNode(Opcodes.GETSTATIC, "com/chocohead/mm/EnumExtender", "POOL", "Ljava/util/Map;"));
-				POOL.put(poolKey, addition.getParameters());
-				method.add(new LdcInsnNode(poolKey));
-				method.add(new MethodInsnNode(Opcodes.INVOKEINTERFACE, "java/util/Map", "get", "(Ljava/lang/Object;)Ljava/lang/Object;", true));
-				method.add(new TypeInsnNode(Opcodes.CHECKCAST, "[Ljava/lang/Object;"));
-				method.add(new VarInsnNode(Opcodes.ASTORE, 0));
+				if (builder.hasParameters()) {
+					method.add(new FieldInsnNode(Opcodes.GETSTATIC, "com/chocohead/mm/EnumExtender", "POOL", "Ljava/util/Map;"));
+					POOL.put(poolKey, addition.getParameters());
+					method.add(new LdcInsnNode(poolKey));
+					method.add(new MethodInsnNode(Opcodes.INVOKEINTERFACE, "java/util/Map", "get", "(Ljava/lang/Object;)Ljava/lang/Object;", true));
+					method.add(new TypeInsnNode(Opcodes.CHECKCAST, "[Ljava/lang/Object;"));
+					method.add(new VarInsnNode(Opcodes.ASTORE, 0));
+				}
 
 				LabelNode stuffStart = new LabelNode();
 				method.add(stuffStart);
@@ -231,7 +233,7 @@ public class EnumExtender {
 			}
 
 			clinit.instructions.set(newArray, instructionForValue(currentOrdinal));
-			clinit.maxLocals = Math.max(clinit.maxLocals, 1);
+			if (builder.hasParameters()) clinit.maxLocals = Math.max(clinit.maxLocals, 1);
 			clinit.maxStack = Math.max(clinit.maxStack, getStackSize(builder.parameterTypes));
 		};
 	}
