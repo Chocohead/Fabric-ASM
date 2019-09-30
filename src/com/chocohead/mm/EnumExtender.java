@@ -232,7 +232,7 @@ public class EnumExtender {
 
 			clinit.instructions.set(newArray, instructionForValue(currentOrdinal));
 			clinit.maxLocals = Math.max(clinit.maxLocals, 1);
-			clinit.maxStack = Math.max(clinit.maxStack, builder.parameterTypes.length + 2 + 1); //+2 for String, int and +1 for POOL index
+			clinit.maxStack = Math.max(clinit.maxStack, getStackSize(builder.parameterTypes));
 		};
 	}
 
@@ -242,6 +242,28 @@ public class EnumExtender {
 			stringBuilder.append(parameter.getDescriptor());
 		}
 		return stringBuilder.append(")V").toString();
+	}
+
+	private static int getStackSize(Type[] parameters) {
+		int size = 4; //+4 for <init> DUP, String, int
+
+		//The size of the final parameter doesn't matter as the POOL index forces +1 space
+		switch (parameters.length) {
+		case 0:
+			return size;
+
+		case 1:
+			assert parameters[0].getSize() <= 2;
+			return size + 1 + 1;
+
+		default:
+			for (int i = 0, end = parameters.length - 1; i < end; i++) {
+				size += parameters[i].getSize();
+			}
+
+			assert parameters[parameters.length - 1].getSize() <= 2;
+			return size + 1 + 1;
+		}
 	}
 
 	private static AbstractInsnNode instructionForValue(int value) {
