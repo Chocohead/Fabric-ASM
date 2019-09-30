@@ -196,7 +196,7 @@ public class EnumExtender {
 						break;
 
 					case Type.OBJECT:
-						if (Object.class.getName().equals(targetType.getClassName())) break;
+						if ("java/lang/Object".equals(targetType.getInternalName())) break;
 					case Type.ARRAY:
 						//Need to case to an object (that isn't Object which we already are)
 						method.add(new TypeInsnNode(Opcodes.CHECKCAST, targetType.getInternalName()));
@@ -245,38 +245,36 @@ public class EnumExtender {
 	}
 
 	private static AbstractInsnNode instructionForValue(int value) {
-		if (value <= 5) {
-			switch (value) {
-			case -1:
-				return new InsnNode(Opcodes.ICONST_M1);
+		switch (value) {
+		case -1:
+			return new InsnNode(Opcodes.ICONST_M1);
 
-			case 0:
-				return new InsnNode(Opcodes.ICONST_0);
+		case 0:
+			return new InsnNode(Opcodes.ICONST_0);
 
-			case 1:
-				return new InsnNode(Opcodes.ICONST_1);
+		case 1:
+			return new InsnNode(Opcodes.ICONST_1);
 
-			case 2:
-				return new InsnNode(Opcodes.ICONST_2);
+		case 2:
+			return new InsnNode(Opcodes.ICONST_2);
 
-			case 3:
-				return new InsnNode(Opcodes.ICONST_3);
+		case 3:
+			return new InsnNode(Opcodes.ICONST_3);
 
-			case 4:
-				return new InsnNode(Opcodes.ICONST_4);
+		case 4:
+			return new InsnNode(Opcodes.ICONST_4);
 
-			case 5:
-				return new InsnNode(Opcodes.ICONST_5);
+		case 5:
+			return new InsnNode(Opcodes.ICONST_5);
 
-			default:
-				throw new IllegalStateException("Tried to push " + value);
+		default:
+			if (value >= Byte.MIN_VALUE && value <= Byte.MAX_VALUE) {
+				return new IntInsnNode(Opcodes.BIPUSH, value);
+			} else if (value >= Short.MIN_VALUE && value <= Short.MAX_VALUE) {
+				return new IntInsnNode(Opcodes.SIPUSH, value);
+			} else {
+				return new LdcInsnNode(value);
 			}
-		} else if (value <= Byte.MAX_VALUE) {
-			return new IntInsnNode(Opcodes.BIPUSH, value);
-		} else if (value <= Short.MAX_VALUE) {
-			return new IntInsnNode(Opcodes.SIPUSH, value);
-		} else {
-			return new LdcInsnNode(value);
 		}
 	}
 }
