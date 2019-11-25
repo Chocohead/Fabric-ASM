@@ -7,16 +7,15 @@
  */
 package com.chocohead.mm.api;
 
+import net.minecraft.util.Pair;
+import org.objectweb.asm.Type;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
-
-import org.spongepowered.asm.lib.Type;
-
-import net.minecraft.util.Pair;
 
 /**
  * Simple builder to add additional Enum entries repetitively using the given constructor

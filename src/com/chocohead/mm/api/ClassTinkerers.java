@@ -7,6 +7,10 @@
  */
 package com.chocohead.mm.api;
 
+import org.apache.commons.lang3.ArrayUtils;
+import org.objectweb.asm.Type;
+import org.objectweb.asm.tree.ClassNode;
+
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.Arrays;
@@ -16,10 +20,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-
-import org.apache.commons.lang3.ArrayUtils;
-import org.spongepowered.asm.lib.Type;
-import org.spongepowered.asm.lib.tree.ClassNode;
 
 /**
  * A collection of helper methods to allow adding and changing the definition of classes.

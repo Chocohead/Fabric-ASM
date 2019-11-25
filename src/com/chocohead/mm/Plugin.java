@@ -7,6 +7,23 @@
  */
 package com.chocohead.mm;
 
+import com.chocohead.mm.api.ClassTinkerers;
+import com.chocohead.mm.api.EnumAdder;
+import com.google.gson.JsonElement;
+import net.fabricmc.loader.api.FabricLoader;
+import net.fabricmc.loader.api.ModContainer;
+import org.objectweb.asm.AnnotationVisitor;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
+import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.InnerClassNode;
+import org.objectweb.asm.tree.MethodNode;
+import org.spongepowered.asm.mixin.MixinEnvironment;
+import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
+import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
+import org.spongepowered.asm.mixin.transformer.ext.Extensions;
+
 import java.io.IOException;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -28,27 +45,6 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-
-import org.objectweb.asm.AnnotationVisitor;
-import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.Type;
-
-import org.spongepowered.asm.lib.tree.ClassNode;
-import org.spongepowered.asm.lib.tree.InnerClassNode;
-import org.spongepowered.asm.lib.tree.MethodNode;
-import org.spongepowered.asm.mixin.MixinEnvironment;
-import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
-import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
-import org.spongepowered.asm.mixin.transformer.ext.Extensions;
-
-import com.google.gson.JsonElement;
-
-import net.fabricmc.loader.api.FabricLoader;
-import net.fabricmc.loader.api.ModContainer;
-
-import com.chocohead.mm.api.ClassTinkerers;
-import com.chocohead.mm.api.EnumAdder;
 
 public class Plugin implements IMixinConfigPlugin {
 	final List<String> mixins = new ArrayList<>();

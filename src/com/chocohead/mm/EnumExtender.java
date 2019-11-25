@@ -7,29 +7,29 @@
  */
 package com.chocohead.mm;
 
+import com.chocohead.mm.api.EnumAdder;
+import com.chocohead.mm.api.EnumAdder.EnumAddition;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
+import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.FieldInsnNode;
+import org.objectweb.asm.tree.InsnList;
+import org.objectweb.asm.tree.InsnNode;
+import org.objectweb.asm.tree.IntInsnNode;
+import org.objectweb.asm.tree.LabelNode;
+import org.objectweb.asm.tree.LdcInsnNode;
+import org.objectweb.asm.tree.LocalVariableNode;
+import org.objectweb.asm.tree.MethodInsnNode;
+import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.TypeInsnNode;
+import org.objectweb.asm.tree.VarInsnNode;
+
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.function.Consumer;
-import org.objectweb.asm.Opcodes;
-import org.spongepowered.asm.lib.Type;
-import org.spongepowered.asm.lib.tree.AbstractInsnNode;
-import org.spongepowered.asm.lib.tree.ClassNode;
-import org.spongepowered.asm.lib.tree.FieldInsnNode;
-import org.spongepowered.asm.lib.tree.InsnList;
-import org.spongepowered.asm.lib.tree.InsnNode;
-import org.spongepowered.asm.lib.tree.IntInsnNode;
-import org.spongepowered.asm.lib.tree.LabelNode;
-import org.spongepowered.asm.lib.tree.LdcInsnNode;
-import org.spongepowered.asm.lib.tree.LocalVariableNode;
-import org.spongepowered.asm.lib.tree.MethodInsnNode;
-import org.spongepowered.asm.lib.tree.MethodNode;
-import org.spongepowered.asm.lib.tree.TypeInsnNode;
-import org.spongepowered.asm.lib.tree.VarInsnNode;
-
-import com.chocohead.mm.api.EnumAdder;
-import com.chocohead.mm.api.EnumAdder.EnumAddition;
 
 public class EnumExtender {
 	public static final Map<String, Object[]> POOL = new HashMap<>();

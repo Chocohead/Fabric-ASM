@@ -24,7 +24,7 @@
 		]
 	},
 	"depends": {
-		"fabricloader": ">=0.4.3",
+		"fabricloader": ">=0.7.0",
 		"mm": ">=1.8"
 	}
 }

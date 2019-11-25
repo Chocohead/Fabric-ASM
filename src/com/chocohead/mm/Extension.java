@@ -1,6 +1,6 @@
 package com.chocohead.mm;
 
-import org.spongepowered.asm.lib.tree.ClassNode;
+import org.objectweb.asm.tree.ClassNode;
 import org.spongepowered.asm.mixin.MixinEnvironment;
 import org.spongepowered.asm.mixin.transformer.ClassInfo;
 import org.spongepowered.asm.mixin.transformer.ext.IExtension;
@@ -38,6 +38,6 @@ public class Extension implements IExtension {
 	}
 
 	@Override
-	public void export(MixinEnvironment env, String name, boolean force, byte[] bytes) {
+    public void export(MixinEnvironment env, String name, boolean force, ClassNode classNode) {
 	}
 }
