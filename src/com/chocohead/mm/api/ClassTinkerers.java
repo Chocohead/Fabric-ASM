@@ -82,12 +82,17 @@ public enum ClassTinkerers {
 	 * @param name The name of the class to define
 	 * @param contents The bytecode for the class
 	 * @return Whether the definition was successful (ie another definition with the same name is not already present)
+	 *
+	 * @throws NullPointerException If name is null
+	 * @throws IllegalArgumentException If contents is null
 	 */
 	public static boolean define(String name, byte[] contents) {
 		name = '/' + name.replace('.', '/') + ".class";
 		if (INSTANCE.clazzes.containsKey(name)) return false;
 
+		if (contents == null) throw new IllegalArgumentException("Tried to define null class named " + name);
 		INSTANCE.clazzes.put(name, contents);
+
 		return true;
 	}
 
@@ -138,8 +143,10 @@ public enum ClassTinkerers {
 	 * @param transformer A {@link Consumer} to take the target class's {@link ClassNode} to be tinkered with
 	 *
 	 * @throws NullPointerException If target is null
+	 * @throws IllegalArgumentException If transformer is null
 	 */
 	public static void addTransformation(String target, Consumer<ClassNode> transformer) {
+		if (transformer == null) throw new IllegalArgumentException("Tried to add null transformer for " + target);
 		INSTANCE.tinkerers.computeIfAbsent(target.replace('.', '/'), k -> new HashSet<>()).add(transformer);
 	}
 
