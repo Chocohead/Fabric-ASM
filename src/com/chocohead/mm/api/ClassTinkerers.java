@@ -37,9 +37,10 @@ public enum ClassTinkerers {
 
 	private Predicate<URL> urlers = url -> false;
 	private Map<String, byte[]> clazzes = new HashMap<>();
+	private Map<String, Consumer<ClassNode>> replacers = new HashMap<>();
 	private Map<String, Set<Consumer<ClassNode>>> tinkerers = new HashMap<>();
 	private Set<EnumAdder> enumExtensions = new HashSet<>();
-	public void hookUp(Consumer<URL> liveURL, Map<String, byte[]> liveClassMap, Map<String, Set<Consumer<ClassNode>>> liveTinkerers, Set<EnumAdder> liveEnums) {
+	public void hookUp(Consumer<URL> liveURL, Map<String, byte[]> liveClassMap, Map<String, Consumer<ClassNode>> liveReplacers, Map<String, Set<Consumer<ClassNode>>> liveTinkerers, Set<EnumAdder> liveEnums) {
 		urlers = url -> {
 			liveURL.accept(url);
 			return true;
@@ -47,6 +48,9 @@ public enum ClassTinkerers {
 
 		liveClassMap.putAll(clazzes);
 		clazzes = liveClassMap;
+
+		liveReplacers.putAll(replacers);
+		replacers = liveReplacers;
 
 		liveTinkerers.putAll(tinkerers);
 		tinkerers = liveTinkerers;
@@ -88,11 +92,52 @@ public enum ClassTinkerers {
 	}
 
 	/**
+	 * Add a class replacer for the given class {@link target} to allow totally replacing bytecode during definition.
+	 * <p><b>Does nothing if the target class is already defined</b>
+	 *
+	 * <p>This method is designed when the bulk or entirety of the target class is going to be replaced by the
+	 * {@code replacer}. For more modest changes {@link #addTransformation(String, Consumer)} is strongly recommended.
+	 *
+	 * <p>No Mixins or {@link #addTransformation(String, Consumer) transformations} will have applied when the
+	 * {@code replacer} is given the {@link ClassNode}. Subsequently only one replacement for a given class can be registered,
+	 * attempting to register more will result in an {@link IllegalStateException}.
+	 *
+	 * @param target The name of the class to be replaced
+	 * @param transformer A {@link Consumer} to take the target class's unmodified {@link ClassNode} replace the contents
+	 *
+	 * @throws NullPointerException If target is null
+	 * @throws IllegalArgumentException If replacer is null
+	 * @throws IllegalStateException If replacement for the target has already been registered
+	 *
+	 * @since 1.9
+	 */
+	public static void addReplacement(String target, Consumer<ClassNode> replacer) {
+		if (replacer == null) throw new IllegalArgumentException("Tried to set null replacer for " + target);
+		String name = target.replace('.', '/');
+
+		Consumer<ClassNode> existing = INSTANCE.replacers.get(name);
+		if (existing != null) {
+			throw new IllegalStateException("Multiple attempts to replace " + name + ": " + existing + " and " + replacer);
+		}
+
+		INSTANCE.replacers.put(name, replacer);
+	}
+
+	/**
 	 * Add a class transformer for the given class {@link target} to allow modifying the bytecode during definition.
 	 * <p><b>Does nothing if the target class is already defined</b>
 	 *
+	 * <p>This method is designed when certain elements of the target class are changed by the {@code transformer}.
+	 * For more drastic changes {@link #addReplacement(String, Consumer)} might prove beneficial.
+	 *
+	 * <p>Any {@link #addReplacement(String, Consumer) replacement} will have applied before the {@code transformer}
+	 * is given the {@link ClassNode}. Any number of other Mixins or transformations could have applied also so care
+	 * should be taken that the target of the transformation is as expected.
+	 *
 	 * @param target The name of the class to be transformed
 	 * @param transformer A {@link Consumer} to take the target class's {@link ClassNode} to be tinkered with
+	 *
+	 * @throws NullPointerException If target is null
 	 */
 	public static void addTransformation(String target, Consumer<ClassNode> transformer) {
 		INSTANCE.tinkerers.computeIfAbsent(target.replace('.', '/'), k -> new HashSet<>()).add(transformer);

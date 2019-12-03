@@ -1,16 +1,21 @@
 package com.chocohead.mm;
 
+import java.util.Map;
+import java.util.function.Consumer;
+
 import org.spongepowered.asm.lib.tree.ClassNode;
 import org.spongepowered.asm.mixin.MixinEnvironment;
 import org.spongepowered.asm.mixin.transformer.ClassInfo;
 import org.spongepowered.asm.mixin.transformer.ext.IExtension;
 import org.spongepowered.asm.mixin.transformer.ext.ITargetClassContext;
 
-public class Extension implements IExtension {
+class Extension implements IExtension {
 	private final String mixinPackage;
+	private final Map<String, Consumer<ClassNode>> classReplacers;
 
-	public Extension(String mixinPackage) {
+	Extension(String mixinPackage, Map<String, Consumer<ClassNode>> classReplacers) {
 		this.mixinPackage = mixinPackage;
+		this.classReplacers = classReplacers;
 	}
 
 	@Override
@@ -20,6 +25,12 @@ public class Extension implements IExtension {
 
 	@Override
 	public void preApply(ITargetClassContext context) {
+		ClassInfo info = context.getClassInfo();
+
+		if (!info.isMixin()) {//Replacing other Mixins sounds like a world of trouble
+			Consumer<ClassNode> replacer = classReplacers.get(info.getName());
+			if (replacer != null) replacer.accept(context.getClassNode());
+		}
 	}
 
 	@Override

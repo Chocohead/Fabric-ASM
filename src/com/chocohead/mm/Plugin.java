@@ -130,6 +130,28 @@ public class Plugin implements IMixinConfigPlugin {
 		}
 
 		Map<String, byte[]> classGenerators = new HashMap<>();
+		Map<String, Consumer<ClassNode>> classReplacers = new HashMap<String, Consumer<ClassNode>>() {
+			private static final long serialVersionUID = -1226882557534215762L;
+			private final Consumer<ClassNode> noop = node -> {
+			};
+			private boolean skipGen = false;
+
+			@Override
+			public Consumer<ClassNode> put(String key, Consumer<ClassNode> value) {
+				if (!skipGen) ClassTinkerers.addTransformation(key, noop);
+				return super.put(key, value);
+			}
+
+			@Override
+			public void putAll(Map<? extends String, ? extends Consumer<ClassNode>> m) {
+				skipGen = true;
+				for (String target : m.keySet()) {
+					ClassTinkerers.addTransformation(target, noop);
+				}
+				super.putAll(m);
+				skipGen = false;
+			}
+		};
 		Map<String, Set<Consumer<ClassNode>>> classModifiers = new HashMap<String, Set<Consumer<ClassNode>>>() {
 			private static final long serialVersionUID = 4152702952480161028L;
 			private boolean skipGen = false;
@@ -192,7 +214,7 @@ public class Plugin implements IMixinConfigPlugin {
 				throw new UnsupportedOperationException();
 			}
 		};
-		ClassTinkerers.INSTANCE.hookUp(fishAddURL(), new UnremovableMap<>(classGenerators), new UnremovableMap<>(classModifiers), enumExtenders);
+		ClassTinkerers.INSTANCE.hookUp(fishAddURL(), new UnremovableMap<>(classGenerators), new UnremovableMap<>(classReplacers), new UnremovableMap<>(classModifiers), enumExtenders);
 
 		ClassTinkerers.addURL(CasualStreamHandler.create(classGenerators));
 		this.classModifiers = classModifiers;
@@ -220,7 +242,7 @@ public class Plugin implements IMixinConfigPlugin {
 			throw new IllegalStateException("Running with a transformer that doesn't have extensions?", e);
 		}
 
-		extensions.add(new Extension(mixinPackage));
+		extensions.add(new Extension(mixinPackage, classReplacers));
 	}
 
 	static byte[] makeMixinBlob(String name, Collection<? extends String> targets) {
