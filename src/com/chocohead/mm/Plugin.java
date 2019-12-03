@@ -288,7 +288,7 @@ public class Plugin implements IMixinConfigPlugin {
 					try {
 						Class.forName(riser.getAsString()).asSubclass(Runnable.class).newInstance().run();
 					} catch (ReflectiveOperationException e) {
-						throw new RuntimeException("Error loading early riser", e);
+						throw new RuntimeException("Error loading early riser from " + mod.getMetadata().getId(), e);
 					}
 				}
 			}
