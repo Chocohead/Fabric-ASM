@@ -32,15 +32,34 @@ public class EnumAdder {
 	public class EnumAddition {
 		/** The name of the new entry */
 		public final String name;
+		/** The class name of the inner class provider for the new entry
+		 * @since 1.9
+		 */
+		public final String structClass;
 		/** The factory which produces the parameters to construct the new entry with */
 		private final Supplier<Object[]> parameterFactory;
 
 		/**
 		 * @param name The name of the new entry
 		 * @param parameterFactory A factory which produces the parameters to construct the new entry with
+		 *
+		 * @deprecated This is an internal API
 		 */
+		@Deprecated
 		public EnumAddition(String name, Supplier<Object[]> parameterFactory) {
+			this(name, null, parameterFactory);
+		}
+
+		/**
+		 * @param name The name of the new entry
+		 * @param structClass The class name of the inner class provider for the new entry, maybe be null
+		 * @param parameterFactory A factory which produces the parameters to construct the new entry with
+		 *
+		 * @since 1.9
+		 */
+		EnumAddition(String name, String structClass, Supplier<Object[]> parameterFactory) {
 			this.name = name;
+			this.structClass = structClass;
 			this.parameterFactory = parameterFactory;
 		}
 
@@ -53,6 +72,17 @@ public class EnumAdder {
 		 */
 		public Object[] getParameters() {
 			return checkParameters(parameterFactory.get());
+		}
+
+		/**
+		 * Whether the new entry will be created as a subclass of the enum target type
+		 *
+		 * @return Whether the new entry has an associated inner class provider
+		 *
+		 * @since 1.9
+		 */
+		public boolean isEnumSubclass() {
+			return structClass != null;
 		}
 	}
 
@@ -124,7 +154,7 @@ public class EnumAdder {
 	 * @param parameters The parameters to construct the new entry with
 	 * @return This object to chain with
 	 *
-	 * @throws NullPointerException If name or parameters is null
+	 * @throws NullPointerException If name or parameters are {@code null}
 	 * @throws IllegalArgumentException If the length of parameters differs to that of {@link #parameterTypes}
 	 * @throws IllegalStateException If {@link #build()} has already been called on this object
 	 */
@@ -146,7 +176,7 @@ public class EnumAdder {
 	 * @param parameterFactory The factory to produce the parameters to construct the new entry with
 	 * @return This object to chain with
 	 *
-	 * @throws NullPointerException If name or parameterFactory is null
+	 * @throws NullPointerException If name or parameterFactory are {@code null}
 	 * @throws IllegalStateException If {@link #build()} has already been called on this object
 	 */
 	public EnumAdder addEnum(String name, Supplier<Object[]> parameterFactory) {
@@ -157,6 +187,60 @@ public class EnumAdder {
 			throw new NullPointerException("Null parameter factory provided to make " + name + " of " + type);
 
 		additions.add(new EnumAddition(name, parameterFactory));
+
+		return this;
+	}
+
+	/**
+	 * Add an entry to the Enum with the given name, constructed using the given parameters, as an enum subclass
+	 *
+	 * @param name The name of the new entry, undetermined result if the name already exists
+	 * @param structClass The class which the subclass will be built from
+	 * @param parameters The parameters to construct the new entry with
+	 * @return This object to chain with
+	 *
+	 * @throws NullPointerException If name or parameters are {@code null}
+	 * @throws IllegalArgumentException If the length of parameters differs to that of {@link #parameterTypes} or structClass is {@code null}
+	 * @throws IllegalStateException If {@link #build()} has already been called on this object
+	 *
+	 * @since 1.9
+	 */
+	public EnumAdder addEnumSubclass(String name, String structClass, Object... parameters) {
+		if (finished) throw new IllegalStateException("Attempted to add onto a built EnumAdder");
+
+		if (name == null) throw new NullPointerException("Null name attempted to be added to " + type);
+		if (structClass == null) throw new IllegalArgumentException("Null structClass provided to make " + name + " of " + type);
+		checkParameters(parameters);
+
+		additions.add(new EnumAddition(name, structClass.replace('.', '/'), () -> parameters));
+
+		return this;
+	}
+
+	/**
+	 * Add an entry to the Enum with the given name, constructed using the parameters supplied using the
+	 * given factory, as an enum subclass
+	 *
+	 * @param name The name of the new entry, undetermined result if the name already exists
+	 * @param structClass The class which the subclass will be built from
+	 * @param parameterFactory The factory to produce the parameters to construct the new entry with
+	 * @return This object to chain with
+	 *
+	 * @throws NullPointerException If name or parameterFactory are {@code null}
+	 * @throws IllegalArgumentException If structClass is {@code null}
+	 * @throws IllegalStateException If {@link #build()} has already been called on this object
+	 *
+	 * @since 1.9
+	 */
+	public EnumAdder addEnumSubclass(String name, String structClass, Supplier<Object[]> parameterFactory) {
+		if (finished) throw new IllegalStateException("Attempted to add onto a built EnumAdder");
+
+		if (name == null) throw new NullPointerException("Null name attempted to be added to " + type);
+		if (structClass == null) throw new IllegalArgumentException("Null structClass provided to make " + name + " of " + type);
+		if (parameterFactory == null)
+			throw new NullPointerException("Null parameter factory provided to make " + name + " of " + type);
+
+		additions.add(new EnumAddition(name, structClass.replace('.', '/'), parameterFactory));
 
 		return this;
 	}
@@ -202,5 +286,22 @@ public class EnumAdder {
 	 */
 	public Collection<EnumAddition> getAdditions() {
 		return Collections.unmodifiableCollection(additions);
+	}
+
+	/**
+	 * Get whether any of the additions made will subclass the Enum
+	 *
+	 * @return If any of the additions return @{@code true} for {@link EnumAddition#isEnumSubclass()}
+	 *
+	 * @since 1.9
+	 */
+	public boolean willSubclass() {
+		for (EnumAddition addition : additions) {
+			if (addition.isEnumSubclass()) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 }

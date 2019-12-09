@@ -42,6 +42,7 @@ import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
 import org.spongepowered.asm.mixin.transformer.ext.Extensions;
 
+import com.google.common.collect.Iterables;
 import com.google.gson.JsonElement;
 
 import net.fabricmc.loader.api.FabricLoader;
@@ -49,9 +50,11 @@ import net.fabricmc.loader.api.ModContainer;
 
 import com.chocohead.mm.api.ClassTinkerers;
 import com.chocohead.mm.api.EnumAdder;
+import com.chocohead.mm.api.EnumAdder.EnumAddition;
 
 public class Plugin implements IMixinConfigPlugin {
 	final List<String> mixins = new ArrayList<>();
+	final Map<String, String> enumStructParents = new HashMap<>();
 	private Map<String, Set<Consumer<ClassNode>>> classModifiers;
 
 	private static Consumer<URL> fishAddURL() {
@@ -182,18 +185,33 @@ public class Plugin implements IMixinConfigPlugin {
 			private static final long serialVersionUID = -2218861530200989346L;
 			private boolean skipCheck = false;
 
+			private void addTransformations(EnumAdder builder) {
+				ClassTinkerers.addTransformation(builder.type, EnumExtender.makeEnumExtender(builder));
+
+				for (EnumAddition addition : builder.getAdditions()) {
+					if (addition.isEnumSubclass()) {
+						ClassTinkerers.addReplacement(addition.structClass, EnumSubclasser.makeStructFixer(addition, builder.type));
+
+						for (ClassNode node : Iterables.skip(EnumSubclasser.getParentStructs(addition.structClass), 1)) {
+							String lastEnum = enumStructParents.put(node.name, builder.type);
+							assert lastEnum == null || lastEnum.equals(builder.type);
+						}
+					}
+				}
+
+				enumStructParents.keySet().removeAll(classReplacers.keySet());
+			}
+
 			@Override
 			public boolean add(EnumAdder builder) {
-				if (!skipCheck) ClassTinkerers.addTransformation(builder.type, EnumExtender.makeEnumExtender(builder));
+				if (!skipCheck) addTransformations(builder);
 				return super.add(builder);
 			}
 
 			@Override
 			public boolean addAll(Collection<? extends EnumAdder> builders) {
 				skipCheck = true;
-				for (EnumAdder builder : builders) {
-					ClassTinkerers.addTransformation(builder.type, EnumExtender.makeEnumExtender(builder));
-				}
+				for (EnumAdder builder : builders) addTransformations(builder);
 				boolean out = super.addAll(builders);
 				skipCheck = false;
 				return out;
@@ -300,6 +318,7 @@ public class Plugin implements IMixinConfigPlugin {
 	}
 
 	@Override
+	@SuppressWarnings("deprecation") //Not removed in the last Loader version we support
 	public List<String> getMixins() {
 		//System.out.println("Have " + mixins);
 		//Entry points are only created once the game starts, which is way too late if we want to be transforming the game
@@ -316,6 +335,11 @@ public class Plugin implements IMixinConfigPlugin {
 			}
 		}
 		//System.out.println("Now have " + mixins);
+		if (!enumStructParents.isEmpty()) {
+			for (Entry<String, String> entry : enumStructParents.entrySet()) {
+				ClassTinkerers.addReplacement(entry.getKey(), EnumSubclasser.makeStructFixer(entry.getKey(), entry.getValue()));
+			}
+		}
 		return mixins;
 	}
 

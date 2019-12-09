@@ -8,15 +8,20 @@
 package com.chocohead.mm;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
+
 import org.objectweb.asm.Opcodes;
 import org.spongepowered.asm.lib.Type;
 import org.spongepowered.asm.lib.tree.AbstractInsnNode;
 import org.spongepowered.asm.lib.tree.ClassNode;
 import org.spongepowered.asm.lib.tree.FieldInsnNode;
+import org.spongepowered.asm.lib.tree.InnerClassNode;
 import org.spongepowered.asm.lib.tree.InsnList;
 import org.spongepowered.asm.lib.tree.InsnNode;
 import org.spongepowered.asm.lib.tree.IntInsnNode;
@@ -28,6 +33,7 @@ import org.spongepowered.asm.lib.tree.MethodNode;
 import org.spongepowered.asm.lib.tree.TypeInsnNode;
 import org.spongepowered.asm.lib.tree.VarInsnNode;
 
+import com.chocohead.mm.api.ClassTinkerers;
 import com.chocohead.mm.api.EnumAdder;
 import com.chocohead.mm.api.EnumAdder.EnumAddition;
 
@@ -123,6 +129,7 @@ public class EnumExtender {
 			}
 
 			String constructor = getConstructorDescriptor(builder.parameterTypes);
+			Supplier<String> anonymousClassFactory = builder.willSubclass() ? anonymousClassFactory(node) : null;
 
 			for (EnumAddition addition : builder.getAdditions()) {
 				node.visitField(Opcodes.ACC_PUBLIC + Opcodes.ACC_FINAL + Opcodes.ACC_STATIC + Opcodes.ACC_ENUM, addition.name, 'L' + node.name + ';', null, null);
@@ -130,6 +137,7 @@ public class EnumExtender {
 				String poolKey = builder.type + '#' + addition.name; //As unique as the field name is
 				InsnList method = new InsnList();
 
+				LabelNode stuffStart;
 				if (builder.hasParameters()) {
 					method.add(new FieldInsnNode(Opcodes.GETSTATIC, "com/chocohead/mm/EnumExtender", "POOL", "Ljava/util/Map;"));
 					POOL.put(poolKey, addition.getParameters());
@@ -137,11 +145,13 @@ public class EnumExtender {
 					method.add(new MethodInsnNode(Opcodes.INVOKEINTERFACE, "java/util/Map", "get", "(Ljava/lang/Object;)Ljava/lang/Object;", true));
 					method.add(new TypeInsnNode(Opcodes.CHECKCAST, "[Ljava/lang/Object;"));
 					method.add(new VarInsnNode(Opcodes.ASTORE, 0));
-				}
 
-				LabelNode stuffStart = new LabelNode();
-				method.add(stuffStart);
-				method.add(new TypeInsnNode(Opcodes.NEW, node.name));
+					stuffStart = new LabelNode();
+					method.add(stuffStart);
+				} else stuffStart = null;
+
+				String additionType = addition.isEnumSubclass() ? anonymousClassFactory.get() : node.name;
+				method.add(new TypeInsnNode(Opcodes.NEW, additionType));
 				method.add(new InsnNode(Opcodes.DUP));
 
 				method.add(new LdcInsnNode(addition.name));
@@ -212,14 +222,32 @@ public class EnumExtender {
 					}
 				}
 
-				method.add(new MethodInsnNode(Opcodes.INVOKESPECIAL, node.name, "<init>", constructor, false));
+				method.add(new MethodInsnNode(Opcodes.INVOKESPECIAL, additionType, "<init>", constructor, false));
 				method.add(new FieldInsnNode(Opcodes.PUTSTATIC, node.name, addition.name, 'L' + node.name + ';'));
 
-				LabelNode stuffEnd = new LabelNode();
-				method.add(stuffEnd);
+				if (builder.hasParameters()) {
+					LabelNode stuffEnd = new LabelNode();
+					method.add(stuffEnd);
+
+					assert stuffStart != null;
+					clinit.localVariables.add(new LocalVariableNode("stuff", "[Ljava/lang/Object;", null, stuffStart, stuffEnd, 0));
+				}
 
 				clinit.instructions.insertBefore(newArray, method);
-				clinit.localVariables.add(new LocalVariableNode("stuff", "[Ljava/lang/Object;", null, stuffStart, stuffEnd, 0));
+
+
+				if (addition.isEnumSubclass()) {
+					ClassTinkerers.define(additionType, EnumSubclasser.defineAnonymousSubclass(node, addition, additionType, constructor));
+					node.innerClasses.add(new InnerClassNode(additionType, node.name, additionType.substring(node.name.length() + 1), Opcodes.ACC_ENUM));
+
+					for (MethodNode m : node.methods) {
+						if ("<init>".equals(m.name) && constructor.equals(m.desc)) {
+							//Make sure the subclass can use the constructor it wants to
+							m.access = m.access & ~Opcodes.ACC_PRIVATE;
+							break;
+						}
+					}
+				}
 
 
 				method = new InsnList();
@@ -235,6 +263,10 @@ public class EnumExtender {
 			clinit.instructions.set(newArray, instructionForValue(currentOrdinal));
 			if (builder.hasParameters()) clinit.maxLocals = Math.max(clinit.maxLocals, 1);
 			clinit.maxStack = Math.max(clinit.maxStack, getStackSize(builder.parameterTypes));
+
+			if ((node.access & Opcodes.ACC_FINAL) != 0 && builder.willSubclass()) {
+				node.access = node.access & ~Opcodes.ACC_FINAL;
+			}
 		};
 	}
 
@@ -244,6 +276,39 @@ public class EnumExtender {
 			stringBuilder.append(parameter.getDescriptor());
 		}
 		return stringBuilder.append(")V").toString();
+	}
+
+	private static Supplier<String> anonymousClassFactory(ClassNode target) {
+		String leadIn = target.name + '$';
+
+		Set<String> seenInners = new HashSet<>();
+		for (MethodNode method : target.methods) {
+			on: for (ListIterator<AbstractInsnNode> it = method.instructions.iterator(); it.hasNext();) {
+				AbstractInsnNode insn = it.next();
+
+				if (insn.getType() == AbstractInsnNode.METHOD_INSN) {
+					String owner = ((MethodInsnNode) insn).owner;
+
+					if (owner.startsWith(leadIn)) {
+						for (int i = leadIn.length(); i < owner.length(); i++) {
+							char c = owner.charAt(i);
+							if ('0' > c || c > '9') continue on;
+						}
+
+						seenInners.add(owner.substring(leadIn.length()));
+					}
+				}
+			}
+		}
+
+		return new Supplier<String>() {
+			private int last = seenInners.stream().mapToInt(Integer::parseInt).max().orElse(1);
+
+			@Override
+			public String get() {
+				return leadIn + last++;
+			}
+		};
 	}
 
 	private static int getStackSize(Type[] parameters) {
