@@ -19,6 +19,7 @@ import java.net.URLStreamHandlerFactory;
 import java.security.Permission;
 import java.util.Collections;
 import java.util.Map;
+import java.util.function.BiConsumer;
 
 public class CasualStreamHandler extends URLStreamHandler {
 	private static class CasualConnection extends URLConnection {
@@ -38,6 +39,11 @@ public class CasualStreamHandler extends URLStreamHandler {
 
 		@Override
 		public InputStream getInputStream() {
+			if (dumper == null) {
+				System.err.println("Asked for " + url.getPath() + " too early to export");
+			} else {
+				dumper.accept(url.getPath().substring(1, url.getPath().length() - 6).replace('/', '.'), realStream);
+			}
 			return new ByteArrayInputStream(realStream);
 		}
 
@@ -47,6 +53,7 @@ public class CasualStreamHandler extends URLStreamHandler {
 		}
 	}
 
+	static BiConsumer<String, byte[]> dumper;
 	private final Map<String, byte[]> providers;
 
 	public static URL create(String name, byte[] stream) {

@@ -41,6 +41,7 @@ import org.spongepowered.asm.mixin.MixinEnvironment;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
 import org.spongepowered.asm.mixin.transformer.ext.Extensions;
+import org.spongepowered.asm.mixin.transformer.ext.extensions.ExtensionClassExporter;
 
 import com.google.common.collect.Iterables;
 import com.google.gson.JsonElement;
@@ -261,6 +262,8 @@ public class Plugin implements IMixinConfigPlugin {
 		}
 
 		extensions.add(new Extension(mixinPackage, classReplacers));
+		ExtensionClassExporter exporter = extensions.getExtension(ExtensionClassExporter.class);
+		CasualStreamHandler.dumper = (name, bytes) -> exporter.export(MixinEnvironment.getCurrentEnvironment(), name, false, bytes);
 	}
 
 	static byte[] makeMixinBlob(String name, Collection<? extends String> targets) {
