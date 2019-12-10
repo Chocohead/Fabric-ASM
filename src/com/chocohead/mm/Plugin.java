@@ -44,6 +44,7 @@ import org.spongepowered.asm.mixin.transformer.ext.Extensions;
 import org.spongepowered.asm.mixin.transformer.ext.extensions.ExtensionClassExporter;
 
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 import com.google.gson.JsonElement;
 
 import net.fabricmc.loader.api.FabricLoader;
@@ -134,28 +135,6 @@ public class Plugin implements IMixinConfigPlugin {
 		}
 
 		Map<String, byte[]> classGenerators = new HashMap<>();
-		Map<String, Consumer<ClassNode>> classReplacers = new HashMap<String, Consumer<ClassNode>>() {
-			private static final long serialVersionUID = -1226882557534215762L;
-			private final Consumer<ClassNode> noop = node -> {
-			};
-			private boolean skipGen = false;
-
-			@Override
-			public Consumer<ClassNode> put(String key, Consumer<ClassNode> value) {
-				if (!skipGen) ClassTinkerers.addTransformation(key, noop);
-				return super.put(key, value);
-			}
-
-			@Override
-			public void putAll(Map<? extends String, ? extends Consumer<ClassNode>> m) {
-				skipGen = true;
-				for (String target : m.keySet()) {
-					ClassTinkerers.addTransformation(target, noop);
-				}
-				super.putAll(m);
-				skipGen = false;
-			}
-		};
 		Map<String, Set<Consumer<ClassNode>>> classModifiers = new HashMap<String, Set<Consumer<ClassNode>>>() {
 			private static final long serialVersionUID = 4152702952480161028L;
 			private boolean skipGen = false;
@@ -178,6 +157,25 @@ public class Plugin implements IMixinConfigPlugin {
 			public void putAll(Map<? extends String, ? extends Set<Consumer<ClassNode>>> m) {
 				skipGen = true;
 				generate("MassExport_" + massPool++, m.keySet());
+				super.putAll(m);
+				skipGen = false;
+			}
+		};
+		Map<String, Consumer<ClassNode>> classReplacers = new HashMap<String, Consumer<ClassNode>>() {
+			private static final long serialVersionUID = -1226882557534215762L;
+			private boolean skipGen = false;
+
+			@Override
+			public Consumer<ClassNode> put(String key, Consumer<ClassNode> value) {
+				if (!skipGen && !classModifiers.containsKey(key)) classModifiers.put(key, new HashSet<>());
+				return super.put(key, value);
+			}
+
+			@Override
+			public void putAll(Map<? extends String, ? extends Consumer<ClassNode>> m) {
+				skipGen = true;
+				//Avoid squishing anything if it's already there, otherwise make an empty set
+				classModifiers.putAll(Maps.asMap(m.keySet(), name -> classModifiers.getOrDefault(name, new HashSet<>())));
 				super.putAll(m);
 				skipGen = false;
 			}
