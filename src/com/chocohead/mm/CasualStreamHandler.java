@@ -10,10 +10,12 @@ package com.chocohead.mm;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Field;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLStreamHandler;
+import java.net.URLStreamHandlerFactory;
 import java.security.Permission;
 import java.util.Collections;
 import java.util.Map;
@@ -52,14 +54,49 @@ public class CasualStreamHandler extends URLStreamHandler {
 	}
 
 	public static URL create(Map<String, byte[]> mixins) {
+		URLStreamHandler handler = new CasualStreamHandler(mixins);
+
 		try {
-			return new URL("magic-at", null, -1, "/", new CasualStreamHandler(mixins));
+			URL.setURLStreamHandlerFactory(protocol -> {
+				if ("magic-at".equals(protocol)) {
+					return handler;
+				} else {
+					return null;
+				}
+			});
+		} catch (Error error) {
+			assert "factory already defined".equals(error.getMessage());
+
+			try {//An existing factory already exists, time to assimilate it
+				Field f = URL.class.getDeclaredField("factory");
+				assert f.getType() == URLStreamHandlerFactory.class;
+				f.setAccessible(true);
+
+				URLStreamHandlerFactory factory = (URLStreamHandlerFactory) f.get(null);
+				f.set(null, null); //Out of the way please
+
+				URL.setURLStreamHandlerFactory(protocol -> {
+					if ("magic-at".equals(protocol)) {
+						return handler;
+					} else {
+						return factory.createURLStreamHandler(protocol);
+					}
+				});
+			} catch (ReflectiveOperationException e) {
+				e.addSuppressed(error); //It's all gone wrong :(
+				throw new RuntimeException("Failed to register URLStreamHandler", e);
+			}
+		}
+
+		try {
+			return new URL("magic-at", null, -1, "/", handler);
 		} catch (MalformedURLException e) {
 			throw new RuntimeException("Unexpected error creating URL", e);
 		}
 	}
 
 	//There is a proper way to do this too https://stackoverflow.com/questions/26363573/registering-and-using-a-custom-java-net-url-protocol
+	//Unfortunately the proper way requires being present on the system classloader, which we're not going to be :|
 	public CasualStreamHandler(Map<String, byte[]> providers) {
 		this.providers = providers;
 	}
