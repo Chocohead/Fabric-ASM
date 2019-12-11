@@ -143,7 +143,7 @@ class EnumSubclasser {
 		writer.visitField(Opcodes.ACC_PRIVATE | Opcodes.ACC_FINAL, "struct", structType.getDescriptor(), null, null).visitEnd();
 
 		Method method = new Method("<init>", constructor);
-		GeneratorAdapter generator = new GeneratorAdapter(Opcodes.ACC_PUBLIC, method, null, null, writer);
+		GeneratorAdapter generator = new GeneratorAdapter(0, method, null, null, writer);
 		generator.loadThis();
 		generator.loadArgs();
 		generator.invokeConstructor(enumType, method);
@@ -178,16 +178,19 @@ class EnumSubclasser {
 				String previous = gains.put(from, to);
 				assert previous == null || previous.equals(to);
 			}
-		}).filter(m -> m.name.charAt(0) != '<' && !Modifier.isPrivate(m.access) && !Modifier.isStatic(m.access)).map(m -> m.name + m.desc).filter(toMatch::containsKey)
-				.collect(Collectors.toMap(Function.identity(), toMatch::get));
+		}).filter(m -> m.name.charAt(0) != '<' && !Modifier.isPrivate(m.access) && !Modifier.isStatic(m.access)).map(m -> m.name + m.desc)
+				.filter(toMatch::containsKey).collect(Collectors.toMap(Function.identity(), toMatch::get));
 
 		for (Entry<String, MethodNode> entry : overrides.entrySet()) {
-			assert !Modifier.isFinal(entry.getValue().access); //We shouldn't override a final method really
+			MethodNode override = entry.getValue();
+			assert !Modifier.isFinal(override.access); //We shouldn't override a final method really
+			assert !Modifier.isPrivate(override.access); //We don't actually override the method if it's private
+			assert !Modifier.isNative(override.access); //Don't override native methods, it's not a good idea
 
 			method = makeMethod(entry.getKey());
 			//Strictly speaking the JVM doesn't especially care about checked exceptions or signatures, but because we can...
-			generator = new GeneratorAdapter(Opcodes.ACC_PUBLIC, method, entry.getValue().signature,
-					entry.getValue().exceptions.stream().map(Type::getObjectType).toArray(Type[]::new), writer);
+			generator = new GeneratorAdapter(override.access & ~Opcodes.ACC_ABSTRACT, method, override.signature,
+					override.exceptions.stream().map(Type::getObjectType).toArray(Type[]::new), writer);
 			generator.loadThis();
 			generator.getField(thisType, "struct", structType);
 			generator.loadArgs();
@@ -200,7 +203,7 @@ class EnumSubclasser {
 			String to = entry.getValue();
 			assert !toMatch.containsKey(to); //Surely Mojang wouldn't have a method using our wonderful names
 
-			method = makeMethod(to);
+			method = makeMethod(to); //Needs to be public so the struct can call it
 			generator = new GeneratorAdapter(Opcodes.ACC_PUBLIC | Opcodes.ACC_SYNTHETIC | Opcodes.ACC_BRIDGE, method, null, null, writer);
 			generator.loadThis();
 			generator.loadArgs();
