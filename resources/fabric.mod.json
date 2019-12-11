@@ -3,7 +3,7 @@
 	"id": "mm",
 	"name": "Manningham Mills",
 	"description": "The mod to do what asie said Fabric shouldn't allow you to do",
-	"version": "1.8",
+	"version": "1.9",
 	"icon": "assets/mm/icon.png",
 	"authors": [
 		"Chocohead"
@@ -21,7 +21,7 @@
 		]
 	},
 	"depends": {
-		"fabricloader": ">=0.4.0"
+		"fabricloader": ">=0.4.0 <0.7"
 	},
 	"mixins": [{
 		"config": "mixins.mm.json"
