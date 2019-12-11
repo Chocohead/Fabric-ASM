@@ -24,4 +24,8 @@ public enum TestEnum {
 
 	void magicMethod() {
 	}
+
+	public boolean reallyMagicMethod(int value) {
+		return value > 5;
+	}
 }

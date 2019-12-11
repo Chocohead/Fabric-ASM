@@ -48,6 +48,7 @@ public class ExampleMod implements ModInitializer {
 
 		for (TestEnum test : TestEnum.values()) {
 			LOGGER.debug(test.ordinal() + " => " + test);
+			if (test.getDeclaringClass() != test.getClass()) test.reallyMagicMethod(10);
 		}
 
 		EnchantmentTarget target = ClassTinkerers.getEnum(EnchantmentTarget.class, "CAKE");
