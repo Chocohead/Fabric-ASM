@@ -16,14 +16,15 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import com.google.common.collect.Iterables;
 
 import org.objectweb.asm.Opcodes;
 import org.spongepowered.asm.lib.AnnotationVisitor;
 import org.spongepowered.asm.lib.ClassReader;
+import org.spongepowered.asm.lib.ClassVisitor;
 import org.spongepowered.asm.lib.ClassWriter;
+import org.spongepowered.asm.lib.MethodVisitor;
 import org.spongepowered.asm.lib.Type;
 import org.spongepowered.asm.lib.commons.GeneratorAdapter;
 import org.spongepowered.asm.lib.commons.Method;
@@ -38,12 +39,96 @@ import org.spongepowered.asm.util.Annotations;
 import com.chocohead.mm.api.EnumAdder.EnumAddition;
 
 class EnumSubclasser {
-	private static final Map<EnumAddition, ClassNode> ADDITION_TO_CHANGES = new IdentityHashMap<>();
-	private static final Map<String, ClassNode> STRUCTS_TO_CLASS = new HashMap<>();
+	private static class StructClassVisitor extends ClassVisitor {
+		private static final String MIXIN = Type.getDescriptor(Mixin.class);
+		private final List<MethodNode> methods = new ArrayList<>();
+		private String name, parent;
+		private boolean isMixin, hasRead;
+
+		public StructClassVisitor() {
+			super(Opcodes.ASM7);
+		}
+
+		@Override
+		public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
+			this.name = name;
+			parent = superName;
+		}
+
+		@Override
+		public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
+			if (!visible && !isMixin) {
+				isMixin = MIXIN.equals(descriptor);
+			}
+
+			return null;
+		}
+
+		@Override
+		public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
+			MethodNode method = new MethodNode(access, name, descriptor, signature, exceptions);
+			methods.add(method);
+			return method;
+		}
+
+		@Override
+		public void visitEnd() {
+			hasRead = true;
+		}
+
+		public boolean isMixin() {
+			if (!hasRead) throw new IllegalStateException("Haven't visited class");
+			return isMixin;
+		}
+
+		public StructClass asStruct() {
+			if (!hasRead) throw new IllegalStateException("Haven't visited class");
+			if (isMixin) throw new IllegalArgumentException("Tried to turn Mixin into a struct");
+			return new StructClass(name, parent, methods);
+		}
+	}
+	static class StructClass {
+		private boolean isFixed;
+		public final String name;
+		private String parent;
+		public final List<MethodNode> methods;
+
+		StructClass(String name, String parent, List<MethodNode> methods) {
+			this.name = name;
+			this.parent = parent;
+			this.methods = methods;
+		}
+
+		public StructClass(ClassNode node) {
+			name = node.name;
+			parent = node.superName;
+			methods = node.methods;
+		}
+
+		boolean isFixed() {
+			return isFixed;
+		}
+
+		void setFixed() {
+			isFixed = true;
+		}
+
+		public String getParent() {
+			return parent;
+		}
+
+		String switchParent(String name) {
+			String old = parent;
+			parent = name;
+			return old;
+		}
+	}
+	private static final Map<EnumAddition, StructClass> ADDITION_TO_CHANGES = new IdentityHashMap<>();
+	private static final Map<String, StructClass> STRUCTS_TO_CLASS = new HashMap<>();
 	private static final Set<String> STRUCT_MIXINS = new HashSet<>();
 
 	static byte[] defineAnonymousSubclass(ClassNode enumNode, EnumAddition addition, String anonymousClassName, String constructor) {
-		ClassWriter writer = new ClassWriter(0);
+		ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
 
 		Type enumType = Type.getObjectType(enumNode.name);
 		Type thisType = Type.getObjectType(anonymousClassName);
@@ -63,16 +148,16 @@ class EnumSubclasser {
 		generator.newInstance(structType);
 		generator.dup();
 		generator.invokeConstructor(structType, new Method("<init>", "()V"));
-		generator.putStatic(thisType, "struct", structType);
+		generator.putField(thisType, "struct", structType);
 		generator.returnValue();
 		generator.endMethod();
 
-		ClassNode struct = loadStruct(anonymousClassName, addition);
+		StructClass struct = loadStruct(anonymousClassName, addition);
 		assert struct.name.equals(structType.getInternalName());
 
 		Map<String, String> gains = new HashMap<>();
 		Map<String, MethodNode> toMatch = enumNode.methods.stream().collect(Collectors.toMap(m -> m.name + m.desc, Function.identity()));
-		Map<String, MethodNode> overrides = Stream.concat(Stream.of(struct), getParentStructs(struct.superName).stream()).flatMap(node -> node.methods.stream()).peek(m -> {
+		Map<String, MethodNode> overrides = getParentStructs(struct).stream().flatMap(node -> node.methods.stream()).peek(m -> {
 			AnnotationNode annotation = Annotations.getInvisible(m, CorrectedMethod.class);
 
 			List<AnnotationNode> corrections;
@@ -100,7 +185,8 @@ class EnumSubclasser {
 			//Strictly speaking the JVM doesn't especially care about checked exceptions or signatures, but because we can...
 			generator = new GeneratorAdapter(Opcodes.ACC_PUBLIC, method, entry.getValue().signature,
 					entry.getValue().exceptions.stream().map(Type::getObjectType).toArray(Type[]::new), writer);
-			generator.getStatic(thisType, "struct", structType);
+			generator.loadThis();
+			generator.getField(thisType, "struct", structType);
 			generator.loadArgs();
 			generator.invokeVirtual(structType, method);
 			generator.returnValue();
@@ -115,7 +201,8 @@ class EnumSubclasser {
 			generator.loadThis();
 			generator.loadArgs();
 			generator.invokeConstructor(enumType, method);
-			generator.getStatic(thisType, "struct", structType);
+			generator.loadThis();
+			generator.getField(thisType, "struct", structType);
 			generator.loadArgs();
 			generator.invokeVirtual(structType, method);
 			generator.returnValue();
@@ -132,35 +219,37 @@ class EnumSubclasser {
 		return new Method(nameDesc.substring(0, split), nameDesc.substring(split));
 	}
 
-	private static synchronized ClassNode loadStruct(String newOwner, EnumAddition addition) {
-		ClassNode node = ADDITION_TO_CHANGES.get(addition);
-		if (node != null) return node;
+	private static synchronized StructClass loadStruct(String newOwner, EnumAddition addition) {
+		StructClass node = ADDITION_TO_CHANGES.get(addition);
+		if (node != null && node.isFixed()) return node;
 
 		node = STRUCTS_TO_CLASS.get(addition.structClass);
-		if (node != null) {
+		if (node != null && node.isFixed()) {
 			ADDITION_TO_CHANGES.put(addition, node);
 			return node;
 		}
 
-		try (InputStream in = EnumSubclasser.class.getResourceAsStream(addition.structClass + ".class")) {
-			assert in != null: "Unable to find provided struct class " + addition.structClass;
-			new ClassReader(in).accept(node = new ClassNode(), ClassReader.SKIP_FRAMES); //Recalculating frames is slow, but we are changing a lot of things
-		} catch (IOException e) {
-			throw new RuntimeException("Unable to find provided struct class " + addition.structClass, e);
+		if (node == null) {
+			StructClassVisitor visitor;
+			try (InputStream in = EnumSubclasser.class.getResourceAsStream(addition.structClass + ".class")) {
+				assert in != null: "Unable to find provided struct class " + addition.structClass;
+				new ClassReader(in).accept(visitor = new StructClassVisitor(), ClassReader.SKIP_FRAMES); //Recalculating frames is slow, but we are changing a lot of things
+			} catch (IOException e) {
+				throw new RuntimeException("Unable to find provided struct class " + addition.structClass, e);
+			}
+
+			assert !visitor.isMixin();
+			node = visitor.asStruct();
 		}
 
-		List<ClassNode> parents = getParentStructs(node.superName);
+		List<StructClass> parents = getParentStructs(node);
+		assert !parents.isEmpty() && parents.get(0) == node;
 
-		String mixin; {
-			ClassNode deepestParent = Iterables.getLast(parents, node);
-			mixin = deepestParent.superName;
-
-			//Make sure to remove the Mixin class from the deepest parent's hierarchy
-			deepestParent.superName = Object.class.getName().replace('.', '/');
-		}
+		//Make sure to remove the Mixin class from the deepest parent's hierarchy
+		String mixin = Iterables.getLast(parents).switchParent(Object.class.getName().replace('.', '/'));
 
 		//Stream.concat(Stream.of(node), parents.stream()).forEach(struct -> {
-		for (ClassNode struct : Iterables.concat(Collections.singletonList(node), parents)) {
+		for (StructClass struct : parents) {
 			for (MethodNode method : struct.methods) {
 				Map<String, String> replacements = new HashMap<>();
 
@@ -168,15 +257,21 @@ class EnumSubclasser {
 					AbstractInsnNode insn = it.next();
 
 					if (insn.getType() == AbstractInsnNode.METHOD_INSN && mixin.equals(((MethodInsnNode) insn).owner)) {
+						assert !struct.isFixed();
+
 						if (insn.getOpcode() == Opcodes.INVOKESPECIAL) {//super call, needs special handling
 							MethodInsnNode mInsn = (MethodInsnNode) insn;
 
-							String newName = "MMsuper£" + mInsn.name;
-							replacements.put(mInsn.name + mInsn.desc, newName + mInsn.desc);
+							if ("<init>".equals(mInsn.name)) {//Make sure not to screw up the class's constructor
+								mInsn.owner = struct.getParent();
+							} else {
+								String newName = "MMsuper£" + mInsn.name;
+								replacements.put(mInsn.name + mInsn.desc, newName + mInsn.desc);
 
-							mInsn.owner = newOwner;
-							mInsn.name = newName;
-							mInsn.setOpcode(Opcodes.INVOKEVIRTUAL);
+								mInsn.owner = newOwner;
+								mInsn.name = newName;
+								mInsn.setOpcode(Opcodes.INVOKEVIRTUAL);
+							}
 						} else {
 							((MethodInsnNode) insn).owner = newOwner;
 						}
@@ -211,56 +306,74 @@ class EnumSubclasser {
 				}
 				}
 			}
+
+			struct.setFixed();
 		}//);
 
+		ADDITION_TO_CHANGES.put(addition, node);
 		return node;
 	}
 
-	static List<ClassNode> getParentStructs(String name) {
-		List<ClassNode> parents = new ArrayList<>();
+	static List<StructClass> getParentStructs(String name) {
+		StructClass start = loadSuperStruct(name);
+		if (start == null) throw new IllegalArgumentException("Cannot get parents of Mixins");
 
-		String child = name;
-		ClassNode parent;
-		while ((parent = loadSuperStruct(child)) != null) {
-			parents.add(parent);
+		List<StructClass> parents = getParentStructs(start);
+		return parents.subList(1, parents.size());
+	}
 
-			child = parent.superName;
-			if (child == null || child.startsWith("java/lang/")) {
-				throw new IllegalStateException("Missing Mixin from struct hierachy " + name + parents.stream().map(node -> node.name).collect(Collectors.joining(" => ", " => ", "")));
+	private static List<StructClass> getParentStructs(StructClass start) {
+		List<StructClass> parents = new ArrayList<>();
+
+		StructClass child = start;
+		String parent;
+		do {
+			parents.add(child);
+			parent = child.getParent();
+
+			if (parent == null || parent.startsWith("java/lang/")) {
+				if (child.isFixed()) {
+					return parents; //Reached the ex-Mixin extending class
+				} else {
+					throw new IllegalStateException(parents.stream().map(node -> node.name)
+							.collect(Collectors.joining("Missing Mixin from struct hierachy ", " => ", " => " + parent)));
+				}
 			}
-		}
+		} while ((child = loadSuperStruct(parent)) != null);
 
 		return parents;
 	}
 
-	private static synchronized ClassNode loadSuperStruct(String name) {
-		ClassNode node = STRUCTS_TO_CLASS.get(name);
-		if (node != null) return node;
+	private static synchronized StructClass loadSuperStruct(String name) {
+		StructClass struct = STRUCTS_TO_CLASS.get(name);
+		if (struct != null) return struct;
 
 		//If we recognise this as a Mixin there's no need to load it
 		if (STRUCT_MIXINS.contains(name)) return null;
 
 		//Maybe one of the existing enum additions already uses what we want
-		for (Entry<EnumAddition, ClassNode> entry : ADDITION_TO_CHANGES.entrySet()) {
+		for (Entry<EnumAddition, StructClass> entry : ADDITION_TO_CHANGES.entrySet()) {
 			if (entry.getKey().structClass.equals(name)) {
 				return entry.getValue();
 			}
 		}
 
+		StructClassVisitor node;
 		try (InputStream in = EnumSubclasser.class.getResourceAsStream('/' + name + ".class")) {
 			assert in != null: "Unable to find provided struct class " + name;
-			new ClassReader(in).accept(node = new ClassNode(), ClassReader.SKIP_FRAMES);
+			new ClassReader(in).accept(node = new StructClassVisitor(), ClassReader.SKIP_FRAMES);
 		} catch (IOException e) {
 			throw new RuntimeException("Unable to find provided struct class " + name, e);
 		}
 
-		if (Annotations.getInvisible(node, Mixin.class) != null) {
+		if (node.isMixin()) {
 			//We've found the defining Mixin, nothing more to look for
 			STRUCT_MIXINS.add(name);
 			return null;
 		} else {
-			STRUCTS_TO_CLASS.put(name, node);
-			return node;
+			struct = node.asStruct();
+			STRUCTS_TO_CLASS.put(name, struct);
+			return struct;
 		}
 	}
 
@@ -268,11 +381,11 @@ class EnumSubclasser {
 		return node -> {
 			assert node.name.equals(addition.structClass);
 
-			ClassNode replacement;
+			StructClass replacement;
 			synchronized (EnumSubclasser.class) {
 				replacement = ADDITION_TO_CHANGES.get(addition);
 
-				if (node == null) {
+				if (replacement == null) {
 					try {//Don't recognise the addition, force class load the enum
 						Class.forName(target.replace('/', '.'));
 					} catch (ClassNotFoundException e) {
@@ -291,11 +404,11 @@ class EnumSubclasser {
 
 	static Consumer<ClassNode> makeStructFixer(String parent, String target) {
 		return node -> {
-			ClassNode replacement;
+			StructClass replacement;
 			synchronized (EnumSubclasser.class) {
 				replacement = STRUCTS_TO_CLASS.get(parent);
 
-				if (node == null) {
+				if (replacement == null) {
 					try {//Don't recognise the addition, force class load the enum
 						Class.forName(target.replace('/', '.'));
 					} catch (ClassNotFoundException e) {
@@ -312,8 +425,9 @@ class EnumSubclasser {
 		};
 	}
 
-	private static void applyStructFixes(ClassNode target, ClassNode fixes) {
-		target.superName = fixes.superName;
+	private static void applyStructFixes(ClassNode target, StructClass fixes) {
+		assert fixes.isFixed();
+		target.superName = fixes.getParent();
 		target.methods = fixes.methods;
 	}
 }

@@ -43,13 +43,13 @@ import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
 import org.spongepowered.asm.mixin.transformer.ext.Extensions;
 import org.spongepowered.asm.mixin.transformer.ext.extensions.ExtensionClassExporter;
 
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.gson.JsonElement;
 
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.ModContainer;
 
+import com.chocohead.mm.EnumSubclasser.StructClass;
 import com.chocohead.mm.api.ClassTinkerers;
 import com.chocohead.mm.api.EnumAdder;
 import com.chocohead.mm.api.EnumAdder.EnumAddition;
@@ -191,7 +191,7 @@ public class Plugin implements IMixinConfigPlugin {
 					if (addition.isEnumSubclass()) {
 						ClassTinkerers.addReplacement(addition.structClass, EnumSubclasser.makeStructFixer(addition, builder.type));
 
-						for (ClassNode node : Iterables.skip(EnumSubclasser.getParentStructs(addition.structClass), 1)) {
+						for (StructClass node : EnumSubclasser.getParentStructs(addition.structClass)) {
 							String lastEnum = enumStructParents.put(node.name, builder.type);
 							assert lastEnum == null || lastEnum.equals(builder.type);
 						}
