@@ -302,11 +302,11 @@ public class EnumExtender {
 		}
 
 		return new Supplier<String>() {
-			private int last = seenInners.stream().mapToInt(Integer::parseInt).max().orElse(1);
+			private int last = seenInners.stream().mapToInt(Integer::parseInt).max().orElse(0);
 
 			@Override
 			public String get() {
-				return leadIn + last++;
+				return leadIn + ++last;
 			}
 		};
 	}
