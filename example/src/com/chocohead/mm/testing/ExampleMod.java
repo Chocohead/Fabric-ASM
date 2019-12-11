@@ -8,6 +8,8 @@
 package com.chocohead.mm.testing;
 
 import net.minecraft.block.entity.BannerPattern;
+import net.minecraft.enchantment.EnchantmentTarget;
+import net.minecraft.item.Items;
 import net.minecraft.text.event.ClickEvent.Action;
 import net.minecraft.village.VillagerGossips;
 import net.minecraft.village.VillagerGossips.Reputation;
@@ -47,5 +49,8 @@ public class ExampleMod implements ModInitializer {
 		for (TestEnum test : TestEnum.values()) {
 			LOGGER.debug(test.ordinal() + " => " + test);
 		}
+
+		EnchantmentTarget target = ClassTinkerers.getEnum(EnchantmentTarget.class, "CAKE");
+		LOGGER.info("Can enchant cake? " + target.isAcceptableItem(Items.CAKE));
 	}
 }

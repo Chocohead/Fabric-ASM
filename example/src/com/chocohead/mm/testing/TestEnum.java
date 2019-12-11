@@ -21,4 +21,7 @@ public enum TestEnum {
 
 	private TestEnum(double me, double you) {
 	}
+
+	void magicMethod() {
+	}
 }
