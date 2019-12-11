@@ -252,6 +252,8 @@ class EnumSubclasser {
 		String mixin = Iterables.getLast(parents).switchParent(Object.class.getName().replace('.', '/'));
 
 		for (StructClass struct : parents) {
+			Map<String, String> bridges = new HashMap<>();
+
 			for (MethodNode method : struct.methods) {
 				Map<String, String> replacements = new HashMap<>();
 
@@ -310,7 +312,12 @@ class EnumSubclasser {
 							method.instructions.insert(previous, new TypeInsnNode(Opcodes.CHECKCAST, newOwner));
 							method.instructions.set(previous, new FieldInsnNode(Opcodes.GETSTATIC, newOwner, addition.name, enumDescriptor));
 						} else {//Any number of arguments to trip up with, easier to make a bridge
-							throw new UnsupportedOperationException("Calling through " + mInsn.owner + '/' + mInsn.name + mInsn.desc);
+							String bridge = "MMbridge£" + (mInsn.name.startsWith("MMsuper£") ? mInsn.name.substring(8) : mInsn.name);
+
+							String previous = bridges.put(bridge + mInsn.desc, mInsn.name + mInsn.desc);
+							assert previous == null || previous.equals(mInsn.name + mInsn.desc);
+
+							mInsn.name = bridge;
 						}
 					}
 				}
@@ -341,6 +348,28 @@ class EnumSubclasser {
 					method.invisibleAnnotations.add(annotation);
 					break;
 				}
+				}
+			}
+
+			if (!bridges.isEmpty()) {
+				Type newOwnerType = Type.getObjectType(newOwner);
+				Type enumType = Type.getType(enumDescriptor);
+
+				for (Entry<String, String> entry : bridges.entrySet()) {
+					Method bridge = makeMethod(entry.getKey());
+
+					MethodNode method = new MethodNode(Opcodes.ACC_PRIVATE | Opcodes.ACC_SYNTHETIC | Opcodes.ACC_BRIDGE, bridge.getName(), bridge.getDescriptor(), null, null);
+					struct.methods.add(method);
+
+					GeneratorAdapter generator = new GeneratorAdapter(method.access, bridge, method);
+					generator.getStatic(newOwnerType, addition.name, enumType);
+					generator.checkCast(newOwnerType);
+					generator.loadArgs();
+					generator.invokeVirtual(newOwnerType, makeMethod(entry.getValue()));
+					generator.returnValue();
+					//int maxStack = Type.getArgumentsAndReturnSizes(bridge.getDescriptor()) >> 2;
+					//method.visitMaxs(maxStack, maxStack); //Mixin will do this for us
+					generator.endMethod();
 				}
 			}
 
