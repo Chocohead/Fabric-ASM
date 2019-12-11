@@ -31,8 +31,11 @@ import org.spongepowered.asm.lib.commons.Method;
 import org.spongepowered.asm.lib.tree.AbstractInsnNode;
 import org.spongepowered.asm.lib.tree.AnnotationNode;
 import org.spongepowered.asm.lib.tree.ClassNode;
+import org.spongepowered.asm.lib.tree.FieldInsnNode;
 import org.spongepowered.asm.lib.tree.MethodInsnNode;
 import org.spongepowered.asm.lib.tree.MethodNode;
+import org.spongepowered.asm.lib.tree.TypeInsnNode;
+import org.spongepowered.asm.lib.tree.VarInsnNode;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.util.Annotations;
 
@@ -152,7 +155,7 @@ class EnumSubclasser {
 		generator.returnValue();
 		generator.endMethod();
 
-		StructClass struct = loadStruct(anonymousClassName, addition);
+		StructClass struct = loadStruct(enumType.getDescriptor(), anonymousClassName, addition);
 		assert struct.name.equals(structType.getInternalName());
 
 		Map<String, String> gains = new HashMap<>();
@@ -216,7 +219,7 @@ class EnumSubclasser {
 		return new Method(nameDesc.substring(0, split), nameDesc.substring(split));
 	}
 
-	private static synchronized StructClass loadStruct(String newOwner, EnumAddition addition) {
+	private static synchronized StructClass loadStruct(String enumDescriptor, String newOwner, EnumAddition addition) {
 		StructClass node = ADDITION_TO_CHANGES.get(addition);
 		if (node != null && node.isFixed()) return node;
 
@@ -256,21 +259,38 @@ class EnumSubclasser {
 					if (insn.getType() == AbstractInsnNode.METHOD_INSN && mixin.equals(((MethodInsnNode) insn).owner)) {
 						assert !struct.isFixed();
 
-						if (insn.getOpcode() == Opcodes.INVOKESPECIAL) {//super call, needs special handling
-							MethodInsnNode mInsn = (MethodInsnNode) insn;
+						MethodInsnNode mInsn = (MethodInsnNode) insn;
+						boolean easySwap = Type.getArgumentsAndReturnSizes(mInsn.desc) >> 2 <= 1; //Implicit this gives 1 for ()V
 
+						if (insn.getOpcode() == Opcodes.INVOKESPECIAL) {//super call, needs special handling
 							if ("<init>".equals(mInsn.name)) {//Make sure not to screw up the class's constructor
 								mInsn.owner = struct.getParent();
+								continue; //Don't need the stack replacement
 							} else {
 								String newName = "MMsuper£" + mInsn.name;
 								replacements.put(mInsn.name + mInsn.desc, newName + mInsn.desc);
 
-								mInsn.owner = newOwner;
+								mInsn.owner = easySwap ? newOwner : struct.name;
 								mInsn.name = newName;
-								mInsn.setOpcode(Opcodes.INVOKEVIRTUAL);
+								if (easySwap) mInsn.setOpcode(Opcodes.INVOKEVIRTUAL);
 							}
 						} else {
-							((MethodInsnNode) insn).owner = newOwner;
+							mInsn.owner = easySwap ? newOwner : struct.name;
+							if (easySwap) mInsn.setOpcode(Opcodes.INVOKESPECIAL);
+						}
+
+						if (easySwap) {//No arguments to get caught up in, previous instruction should be aload_0
+							AbstractInsnNode previous = insn.getPrevious();
+
+							if (previous.getType() != AbstractInsnNode.VAR_INSN || ((VarInsnNode) previous).var != 0) {
+								//Well it's not aload_0, don't know what to do now :|
+								throw new IllegalStateException("Not quite sure how to handle the bytecode, previous was " + previous.getType());
+							}
+
+							method.instructions.insert(previous, new TypeInsnNode(Opcodes.CHECKCAST, newOwner));
+							method.instructions.set(previous, new FieldInsnNode(Opcodes.GETSTATIC, newOwner, addition.name, enumDescriptor));
+						} else {//Any number of arguments to trip up with, easier to make a bridge
+							throw new UnsupportedOperationException("Calling through " + mInsn.owner + '/' + mInsn.name + mInsn.desc);
 						}
 					}
 				}
