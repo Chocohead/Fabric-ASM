@@ -248,7 +248,6 @@ class EnumSubclasser {
 		//Make sure to remove the Mixin class from the deepest parent's hierarchy
 		String mixin = Iterables.getLast(parents).switchParent(Object.class.getName().replace('.', '/'));
 
-		//Stream.concat(Stream.of(node), parents.stream()).forEach(struct -> {
 		for (StructClass struct : parents) {
 			for (MethodNode method : struct.methods) {
 				Map<String, String> replacements = new HashMap<>();
@@ -325,7 +324,7 @@ class EnumSubclasser {
 			}
 
 			struct.setFixed();
-		}//);
+		}
 
 		ADDITION_TO_CHANGES.put(addition, node);
 		return node;
