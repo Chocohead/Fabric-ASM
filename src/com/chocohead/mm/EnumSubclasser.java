@@ -193,18 +193,15 @@ class EnumSubclasser {
 			generator.endMethod();
 		}
 
-		for (String to : gains.values()) {
+		for (Entry<String, String> entry : gains.entrySet()) {
+			String to = entry.getValue();
 			assert !toMatch.containsKey(to); //Surely Mojang wouldn't have a method using our wonderful names
 
 			method = makeMethod(to);
-			generator = new GeneratorAdapter(Opcodes.ACC_PUBLIC, method, null, null, writer);
+			generator = new GeneratorAdapter(Opcodes.ACC_PUBLIC | Opcodes.ACC_SYNTHETIC | Opcodes.ACC_BRIDGE, method, null, null, writer);
 			generator.loadThis();
 			generator.loadArgs();
-			generator.invokeConstructor(enumType, method);
-			generator.loadThis();
-			generator.getField(thisType, "struct", structType);
-			generator.loadArgs();
-			generator.invokeVirtual(structType, method);
+			generator.invokeConstructor(enumType, makeMethod(entry.getKey()));
 			generator.returnValue();
 			generator.endMethod();
 		}
