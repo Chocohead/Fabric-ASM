@@ -260,9 +260,24 @@ class EnumSubclasser {
 
 					if (insn.getType() == AbstractInsnNode.METHOD_INSN && mixin.equals(((MethodInsnNode) insn).owner)) {
 						assert !struct.isFixed();
-
 						MethodInsnNode mInsn = (MethodInsnNode) insn;
-						boolean easySwap = Type.getArgumentsAndReturnSizes(mInsn.desc) >> 2 <= 1; //Implicit this gives 1 for ()V
+
+						assert insn.getOpcode() != Opcodes.INVOKESTATIC;
+						int argSize = Type.getArgumentsAndReturnSizes(mInsn.desc) >> 2;
+
+						boolean easySwap = true;
+						if (argSize > 1) {//Implicit this gives 1 for ()V
+							AbstractInsnNode previous = insn;
+
+							for (int i = 0; i < argSize; i++) {
+								previous = previous.getPrevious();
+
+								if (previous.getType() != AbstractInsnNode.VAR_INSN || !isVarLoad(previous.getOpcode())) {
+									easySwap = false; //Not just a straight loading of all the parameters
+									break;
+								}
+							}
+						}
 
 						if (insn.getOpcode() == Opcodes.INVOKESPECIAL) {//super call, needs special handling
 							if ("<init>".equals(mInsn.name)) {//Make sure not to screw up the class's constructor
@@ -278,16 +293,19 @@ class EnumSubclasser {
 							}
 						} else {
 							mInsn.owner = easySwap ? newOwner : struct.name;
-							if (easySwap) mInsn.setOpcode(Opcodes.INVOKESPECIAL);
+							if (!easySwap) mInsn.setOpcode(Opcodes.INVOKESPECIAL);
 						}
 
 						if (easySwap) {//No arguments to get caught up in, previous instruction should be aload_0
-							AbstractInsnNode previous = insn.getPrevious();
+							AbstractInsnNode previous = insn;
+							assert argSize >= 1; //We need to back at least one instruction
+							for (int i = 0; i < argSize; i++) previous = previous.getPrevious();
 
 							if (previous.getType() != AbstractInsnNode.VAR_INSN || ((VarInsnNode) previous).var != 0) {
 								//Well it's not aload_0, don't know what to do now :|
 								throw new IllegalStateException("Not quite sure how to handle the bytecode, previous was " + previous.getType());
 							}
+							assert isVarLoad(previous.getOpcode()); //Should be
 
 							method.instructions.insert(previous, new TypeInsnNode(Opcodes.CHECKCAST, newOwner));
 							method.instructions.set(previous, new FieldInsnNode(Opcodes.GETSTATIC, newOwner, addition.name, enumDescriptor));
@@ -331,6 +349,10 @@ class EnumSubclasser {
 
 		ADDITION_TO_CHANGES.put(addition, node);
 		return node;
+	}
+
+	private static boolean isVarLoad(int opcode) {
+		return opcode == Opcodes.ILOAD || opcode == Opcodes.LLOAD || opcode == Opcodes.FLOAD || opcode == Opcodes.DLOAD ||opcode == Opcodes.ALOAD;
 	}
 
 	static List<StructClass> getParentStructs(String name) {
