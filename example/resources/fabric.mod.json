@@ -3,7 +3,7 @@
 	"id": "mme",
 	"name": "Manningham Mills Example",
 	"description": "I swear this actually works",
-	"version": "4",
+	"version": "5",
 	"authors": [
 		"Chocohead"
 	],
@@ -25,6 +25,6 @@
 	},
 	"depends": {
 		"fabricloader": ">=0.4.3 <0.7",
-		"mm": ">=1.9 <2.0"
+		"mm": "^1.9.1"
 	}
 }
