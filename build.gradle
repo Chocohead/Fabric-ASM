@@ -15,7 +15,7 @@ buildscript {
 		}
 	}
 	dependencies {
-        classpath 'com.github.Chocohead:fabric-loom:f2fc524'
+        classpath 'com.github.Chocohead:fabric-loom:0f7fe48326'
 	}
 }
 
@@ -49,7 +49,8 @@ sourceSets {
 		}
 	}
 	example {
-		compileClasspath += main.compileClasspath + main.output 
+		compileClasspath += main.compileClasspath + main.output
+		annotationProcessorPath = main.annotationProcessorPath
 		java {
 			srcDir 'example/src'
 		}
