@@ -14,7 +14,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
 
-import org.spongepowered.asm.lib.Type;
+import org.objectweb.asm.Type;
 
 import net.minecraft.util.Pair;
 

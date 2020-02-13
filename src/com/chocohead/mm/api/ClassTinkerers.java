@@ -18,8 +18,8 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 import org.apache.commons.lang3.ArrayUtils;
-import org.spongepowered.asm.lib.Type;
-import org.spongepowered.asm.lib.tree.ClassNode;
+
+import org.objectweb.asm.tree.ClassNode;
 
 /**
  * A collection of helper methods to allow adding and changing the definition of classes.

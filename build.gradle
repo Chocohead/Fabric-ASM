@@ -36,7 +36,7 @@ minecraft {
 dependencies {
 	minecraft "com.mojang:minecraft:1.14 Pre-Release 3"
 	mappings "net.fabricmc:yarn:1.14 Pre-Release 3+build.1:tiny@gz"
-	modCompile "net.fabricmc:fabric-loader:0.6.2+build.166"
+	modCompile "net.fabricmc:fabric-loader:0.7.0+build.171"
 }
 
 sourceSets {
