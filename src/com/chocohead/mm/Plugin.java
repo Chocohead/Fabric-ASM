@@ -55,7 +55,7 @@ import com.chocohead.mm.api.ClassTinkerers;
 import com.chocohead.mm.api.EnumAdder;
 import com.chocohead.mm.api.EnumAdder.EnumAddition;
 
-public class Plugin implements IMixinConfigPlugin {
+public final class Plugin implements IMixinConfigPlugin {
 	final List<String> mixins = new ArrayList<>();
 	final Map<String, String> enumStructParents = new HashMap<>();
 	private Map<String, Set<Consumer<ClassNode>>> classModifiers;

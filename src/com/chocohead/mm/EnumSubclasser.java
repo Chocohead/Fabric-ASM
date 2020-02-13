@@ -49,8 +49,8 @@ import org.spongepowered.asm.util.Annotations;
 
 import com.chocohead.mm.api.EnumAdder.EnumAddition;
 
-class EnumSubclasser {
-	private static class StructClassVisitor extends ClassVisitor {
+final class EnumSubclasser {
+	private static final class StructClassVisitor extends ClassVisitor {
 		private static final String MIXIN = Type.getDescriptor(Mixin.class);
 		private final List<MethodNode> methods = new ArrayList<>();
 		private String name, parent;
@@ -98,7 +98,7 @@ class EnumSubclasser {
 			return new StructClass(name, parent, methods);
 		}
 	}
-	static class StructClass {
+	static final class StructClass {
 		private boolean isFixed;
 		public final String name;
 		private String parent;

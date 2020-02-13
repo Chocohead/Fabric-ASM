@@ -37,7 +37,7 @@ import com.chocohead.mm.api.ClassTinkerers;
 import com.chocohead.mm.api.EnumAdder;
 import com.chocohead.mm.api.EnumAdder.EnumAddition;
 
-public class EnumExtender {
+public final class EnumExtender {
 	public static final Map<String, Object[]> POOL = new HashMap<>();
 
 

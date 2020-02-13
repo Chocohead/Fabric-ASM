@@ -19,8 +19,8 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.function.BiConsumer;
 
-public class CasualStreamHandler extends URLStreamHandler {
-	private static class CasualConnection extends URLConnection {
+public final class CasualStreamHandler extends URLStreamHandler {
+	private static final class CasualConnection extends URLConnection {
 		private final byte[] realStream;
 
 		public CasualConnection(URL url, byte[] realStream) {

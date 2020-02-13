@@ -17,7 +17,7 @@ import org.spongepowered.asm.mixin.transformer.ClassInfo;
 import org.spongepowered.asm.mixin.transformer.ext.IExtension;
 import org.spongepowered.asm.mixin.transformer.ext.ITargetClassContext;
 
-class Extension implements IExtension {
+final class Extension implements IExtension {
 	private final String mixinPackage;
 	private final Map<String, Consumer<ClassNode>> classReplacers;
 

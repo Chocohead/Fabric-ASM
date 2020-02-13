@@ -23,13 +23,13 @@ import net.minecraft.util.Pair;
  *
  * @author Chocohead
  */
-public class EnumAdder {
+public final class EnumAdder {
 	/**
 	 * Glorified {@link Pair} implementation specifically for {@link EnumAdder}
 	 *
 	 * @author Chocohead
 	 */
-	public class EnumAddition {
+	public final class EnumAddition {
 		/** The name of the new entry */
 		public final String name;
 		/** The class name of the inner class provider for the new entry
@@ -43,10 +43,9 @@ public class EnumAdder {
 		 * @param name The name of the new entry
 		 * @param parameterFactory A factory which produces the parameters to construct the new entry with
 		 *
-		 * @deprecated This is an internal API
+		 * @since 2.0
 		 */
-		@Deprecated
-		public EnumAddition(String name, Supplier<Object[]> parameterFactory) {
+		EnumAddition(String name, Supplier<Object[]> parameterFactory) {
 			this(name, null, parameterFactory);
 		}
 
