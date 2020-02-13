@@ -75,13 +75,24 @@ task sourcesJar(type: Jar, dependsOn: classes) {
 	from sourceSets.main.allSource
 }
 
-build.dependsOn exampleJar
+task exampleSourcesJar(type: RemappingJar, dependsOn: exampleClasses) {
+	classifier = "example-sources"
+	from sourceSets.example.allSource
+}
+
+build.dependsOn exampleJar, exampleSourcesJar
 
 artifacts {
+	archives(remapJar) {
+		builtBy remapJar
+	}
 	archives(exampleJar) {
 		builtBy exampleJar
 	}
 	archives(sourcesJar) {
 		builtBy sourcesJar
+	}
+	archives(exampleSourcesJar) {
+		builtBy exampleSourcesJar
 	}
 }
