@@ -324,14 +324,13 @@ public final class Plugin implements IMixinConfigPlugin {
 	}
 
 	@Override
-	@SuppressWarnings("deprecation") //Not removed in the last Loader version we support
 	public List<String> getMixins() {
 		//System.out.println("Have " + mixins);
-		//Entry points are only created once the game starts, which is way too late if we want to be transforming the game
-		//FabricLoader.getInstance().getEntrypoints("mm:early_riser", Runnable.class).forEach(Runnable::run);
+		FabricLoader.getInstance().getEntrypoints("mm:early_risers", Runnable.class).forEach(Runnable::run);
 		for (ModContainer mod : FabricLoader.getInstance().getAllMods()) {
-			if (mod.getMetadata().containsCustomElement("mm:early_risers")) {
-				for (JsonElement riser : mod.getMetadata().getCustomElement("mm:early_risers").getAsJsonArray()) {
+			if (mod.getMetadata().containsCustomValue("mm:early_risers")) {
+				System.out.println(mod.getMetadata().getName() + " is still using the traditional Early Riser initialisation");
+				for (CustomValue riser : mod.getMetadata().getCustomValue("mm:early_risers").getAsArray()) {
 					try {
 						Class.forName(riser.getAsString()).asSubclass(Runnable.class).newInstance().run();
 					} catch (ReflectiveOperationException e) {

@@ -16,9 +16,7 @@
 	"entrypoints": {
 		"main": [
 			"com.chocohead.mm.testing.ExampleMod"
-		]
-	},
-	"custom": {
+		],
 		"mm:early_risers": [
 			"com.chocohead.mm.testing.EarlyRiser"
 		]
