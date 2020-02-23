@@ -74,9 +74,7 @@ Access transformers are pretty neat and all, but they still have limits. You can
 ### Waiting for High Tide
 Registering additions that want to be made has to happen very early on in the mod loading process. As a result it is quite reasonable to expect that a given mod's initialisers are yet to be run. To resolve this (and the class loading pitfalls described below), MM has a system of "Early Risers" which are classes that implement `Runnable` and are called as early as when necessary.
 
-Early Risers are defined via a custom property in a mod's `fabric.mod.json`. The key is `mm:early_risers` whilst the value is an array of class name strings. Putting anything else there will result in an `IllegalStateException` being thrown whilst trying to parse the class names. The provided example's Early Riser definition is [here](example/resources/fabric.mod.json#L22-L24).
-
-An individual mod will have the Early Risers it defines loaded in the order that they are specified. All mod jars should be present on the classpath at this point, so whilst technically speaking there is no restriction for an Early Riser to be defined in the same jar as the class that defines it is, practically speaking it is more sensible for the definitions to be only what the jar contains.
+Early Risers are defined via an [entrypoint](https://fabricmc.net/wiki/documentation:entrypoint) defined like normal in a mod's `fabric.mod.json`. The Early Riser entrypoint name is `mm:early_risers`, and it uses the type `Runnable` so will have `run` called on entry. The provided example's Early Riser definition is [here](example/resources/fabric.mod.json#L20-L22).
 
 ### Navigating the Entrance
 The earliness that extensions require poses potential pitfalls from class loading. Given the main launch class will get to be resolved, any accidental reference to a class that might have Mixins that need to be applied will certainly result in a sad time. As a consequence there's a great need to be careful the for classes that might be loaded by an Early Riser.
@@ -101,14 +99,14 @@ The third method is in effect a combination of the other two. Like the others, t
 
 ### Docking at the Jetty
 Regardless of which of the methods you use, the resulting return object will be an [`EnumAdder`](src/com/chocohead/mm/api/EnumAdder.java) for your chosen `enum` constructor. It allows adding as many values as you theoretically want, once again with a choice of methods to do so:
-* [`addEnum(String, Object...)`](src/com/chocohead/mm/api/EnumAdder.java#L161)
-* [`addEnum(String, Supplier)`](src/com/chocohead/mm/api/EnumAdder.java#L182)
+* [`addEnum(String, Object...)`](src/com/chocohead/mm/api/EnumAdder.java#L160)
+* [`addEnum(String, Supplier)`](src/com/chocohead/mm/api/EnumAdder.java#L181)
 
 The first takes the value's name and potential parameters directly as pre-created objects. This is helpful for a constructor that might not need any additional arguments or one which uses Java/Library only types. The second also takes the value's name but takes a factory which returns an array of parameters to be as is needed. This allows guarding types that would otherwise be loaded behind a lambda, thus avoiding any more clunky strings to be passed around instead.
 
 The provided example uses both of these methods to demonstrate [here](example/src/com/chocohead/mm/testing/EarlyRiser.java#L22-L29).
 
-Once the desired values are added, [`EnumAdder#build`](src/com/chocohead/mm/api/EnumAdder.java#L277) must be called in order for the changes to be actually applied. This makes using `EnumAdder` as a builder look a little more Java-y, but also registers the changes to be applied as a single block rather than piecewise per addition which provides a small boost to class transforming speed. It is worth nothing that trying to add any more values once `build` is called will end poorly.
+Once the desired values are added, [`EnumAdder#build`](src/com/chocohead/mm/api/EnumAdder.java#L276) must be called in order for the changes to be actually applied. This makes using `EnumAdder` as a builder look a little more Java-y, but also registers the changes to be applied as a single block rather than piecewise per addition which provides a small boost to class transforming speed. It is worth nothing that trying to add any more values once `build` is called will end poorly.
 
 #### Misloading the Raft
 If an invalid (normally wrongly defined) constructor is specified and attempted to be used, this will be picked up during transforming and the game will crash with a `NoSuchMethodError`. Silent exceptions are asking for trouble down the line after all. Duplicate or otherwise invalid value names will throw a `ClassVerifyError` if the JVM isn't happy, ultimately it's the arbiter of what's good and what isn't.
@@ -119,8 +117,8 @@ There is also a degree of trust that the given parameter objects actually match 
 There are times when a jetty alone is insufficient for the extension task at hand, resulting in big problems for any added values. In such situations a full amphibious landing to the cove's shore can be performed instead.
 
 Any situation where a method in the `enum` needs to be subclasses, such as an abstract `enum`, adding values directly will result in `AbstractMethodError`s when the methods are called for the added values. The constructor alone is unable to provide a solution to this; hence MM allows subclassing enums for added entries. These subclasses are defined via an additional structure class (to the constructor's parameters) which defines the overrides a subclass would like to make to the `enum`. Like normal addition there are two options depending how the normal constructor parameters are passed:
-* [`addEnumSubclass(String, String, Object...)`](src/com/chocohead/mm/api/EnumAdder.java#L208)
-* [`addEnumSubclass(String, String, Supplier)`](src/com/chocohead/mm/api/EnumAdder.java#L235)
+* [`addEnumSubclass(String, String, Object...)`](src/com/chocohead/mm/api/EnumAdder.java#L207)
+* [`addEnumSubclass(String, String, Supplier)`](src/com/chocohead/mm/api/EnumAdder.java#L234)
 
 The first and third parameters act just like with normal addition. The second is the internal name of the structure class for the subclass. Such structure classes can themselves extend other classes (thus technically supporting typical class inheritance despite being an `enum`) but should always ultimately extend an **unregistered** abstract Mixin to the target `enum` with the appropriate `@Shadow`ed abstract methods that are desired to be overriden. Whilst an unusual approach this allows the Mixin annotation processor to handle the obfuscation, without Mixin needing to do any actual injecting at runtime. Instead at runtime the Mixin class is removed from the structure class's hierarchy to be replaced `Object` (hence it must be the deepest parent) and the method implementations called directly from the subclass.
 
@@ -156,10 +154,11 @@ There are rare occasions where a transformation to a class is so extensive any i
 
 Class replacements are done via registering a `ClassNode` `Consumer` for a given class to [`ClassTinkerers#addReplacement(String, Consumer)`](src/com/chocohead/mm/api/ClassTinkerers.java#L119) similarly to transformations. Like normal class transformations, this needs to be done from an Early Riser. If a replacement is already registered for the given name an `IllegalStateException` will be thrown.
 
+---
 
 With that you are now as free as practically possible to change whatever you like within the Fabric ecosystem. Now out on the open waters of the raw ASM filled ocean, everything you do is mostly unchecked and anything that goes wrong (or indeed doesn't go wrong) can be down to you. Bon voyage!
 
----
+PS: if you are ever lost at sea, confused by generated and/or modified classes, remember Mixin can help you out with the VM arg [`-Dmixin.debug.export=true`](https://github.com/SpongePowered/Mixin/wiki/Mixin-Java-System-Properties). MM fully supports this for all classes which it changes and generates.
 
 ## Culture Me Up
 [Manningham Mills](https://en.wikipedia.org/wiki/Lister_Mills) (or Lister Mills when trying to mask the fact it's in Manningham) was once the world's largest silk and velvet textiles factory. Built to replace the original mills destroyed by fire in 1871, the now Grade II listed building contained 27 acres of floor space to fit over 11,000 employees making high quality textiles. Estimated to weigh around 8000 imperial tons, the 249 feet high chimney acts as a beacon to attract house buyers to luxury apartments given it can do little else ever since the mill closed down in 1999 and was converted into an apartment complex.
