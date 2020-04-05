@@ -15,7 +15,7 @@ buildscript {
 		}
 	}
 	dependencies {
-        classpath 'com.github.Chocohead:fabric-loom:60c2f34'
+        classpath 'com.github.Chocohead:fabric-loom:415c6b'
 	}
 }
 
@@ -26,7 +26,7 @@ sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
 archivesBaseName = "Manningham Mills"
-version = "2.0"
+version = "2.0.1"
 
 minecraft {
 	refmapName = "mixins.mm.refmap.json"
