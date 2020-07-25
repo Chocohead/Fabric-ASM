@@ -36,7 +36,11 @@ import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
-import org.objectweb.asm.tree.*;
+import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.InnerClassNode;
+import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.tree.MethodInsnNode;
 
 import org.spongepowered.asm.mixin.MixinEnvironment;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
@@ -268,7 +272,7 @@ public final class Plugin implements IMixinConfigPlugin {
 	}
 
 	static byte[] makeMixinBlob(String name, Collection<? extends String> targets) {
-		ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES); // Not sure whether you want this flag due to the slight performance overhead but not having to rewrite frames ourselves would be lovely :D
+		ClassWriter cw = new ClassWriter(0);
 		cw.visit(52, Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT | Opcodes.ACC_INTERFACE, name, null, "java/lang/Object", null);
 
 		AnnotationVisitor mixinAnnotation = cw.visitAnnotation("Lorg/spongepowered/asm/mixin/Mixin;", false);
@@ -303,6 +307,7 @@ public final class Plugin implements IMixinConfigPlugin {
 					for (AbstractInsnNode insnNode : method.instructions) {
 						if (insnNode.getOpcode() == Opcodes.INVOKESPECIAL) {
 							MethodInsnNode methodInsnNode = (MethodInsnNode) insnNode;
+
 							if (!methodInsnNode.name.equals("<init>") && methodInsnNode.owner.equals(node.name) && transforms.contains(methodInsnNode.name + methodInsnNode.desc)) {
 								// Private methods are normally invoked with INVOKESPECIAL
 								// We want to make sure that any private -> public methods are invoked with INVOKEVIRTUAL, so that the JVM correctly handles potential inheritance
