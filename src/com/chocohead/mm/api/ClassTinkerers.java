@@ -19,6 +19,7 @@ import java.util.function.Predicate;
 
 import org.apache.commons.lang3.ArrayUtils;
 
+import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
 
 /**
@@ -83,8 +84,8 @@ public enum ClassTinkerers {
 	 * @param contents The bytecode for the class
 	 * @return Whether the definition was successful (ie another definition with the same name is not already present)
 	 *
-	 * @throws NullPointerException If name is null
-	 * @throws IllegalArgumentException If contents is null
+	 * @throws NullPointerException If name is {@code null}
+	 * @throws IllegalArgumentException If contents is {@code null}
 	 */
 	public static boolean define(String name, byte[] contents) {
 		name = '/' + name.replace('.', '/') + ".class";
@@ -110,8 +111,8 @@ public enum ClassTinkerers {
 	 * @param target The name of the class to be replaced
 	 * @param transformer A {@link Consumer} to take the target class's unmodified {@link ClassNode} replace the contents
 	 *
-	 * @throws NullPointerException If target is null
-	 * @throws IllegalArgumentException If replacer is null
+	 * @throws NullPointerException If target is {@code null}
+	 * @throws IllegalArgumentException If replacer is {@code null}
 	 * @throws IllegalStateException If replacement for the target has already been registered
 	 *
 	 * @since 1.9
@@ -142,8 +143,8 @@ public enum ClassTinkerers {
 	 * @param target The name of the class to be transformed
 	 * @param transformer A {@link Consumer} to take the target class's {@link ClassNode} to be tinkered with
 	 *
-	 * @throws NullPointerException If target is null
-	 * @throws IllegalArgumentException If transformer is null
+	 * @throws NullPointerException If target is {@code null}
+	 * @throws IllegalArgumentException If transformer is {@code null}
 	 */
 	public static void addTransformation(String target, Consumer<ClassNode> transformer) {
 		if (transformer == null) throw new IllegalArgumentException("Tried to add null transformer for " + target);
@@ -184,8 +185,8 @@ public enum ClassTinkerers {
 	 * @param parameterTypes The <b>internal names</b> of the parameter types the constructor to be used takes
 	 * @return A builder for which additional entries can be defined
 	 *
-	 * @throws NullPointerException If type is null
-	 * @throws IllegalArgumentException If parameterTypes is or contains null, or is invalidly specified
+	 * @throws NullPointerException If type is {@code null}
+	 * @throws IllegalArgumentException If parameterTypes is or contains {@code null}, or is invalidly specified
 	 */
 	public static EnumAdder enumBuilder(String type, String... parameterTypes) {
 		if (type == null) throw new NullPointerException("Tried to add onto a null type!");
@@ -202,7 +203,7 @@ public enum ClassTinkerers {
 	 * 	<ul>
 	 * 		<li>{@link Class} - <b>Will crash if a Minecraft class to avoid early class loading</b>
 	 * 		<li>{@link String} - Given as <b>internal names</b> (ie <code>Lmy/package/class;</code> or <code>I</code>)
-	 * 		<li>{@link Type} - Making sure to use the Mixin repackaged one
+	 * 		<li>{@link Type} - Any {@link Type#getSort() sorts} aside from {@link Type#METHOD} or {@link Type#VOID}
 	 * 	</ul>
 	 * 	So that it matches the constructor that is wanted to be used.</p>
 	 *
@@ -212,8 +213,8 @@ public enum ClassTinkerers {
 	 * @param parameterTypes The type or internal names of the parameter types the constructor to be used takes
 	 * @return A builder for which additional entries can be defined
 	 *
-	 * @throws NullPointerException If type is null
-	 * @throws IllegalArgumentException If parameterTypes is or contains null, or is invalidly specified
+	 * @throws NullPointerException If type is {@code null}
+	 * @throws IllegalArgumentException If parameterTypes is or contains {@code null}, or is invalidly specified
 	 */
 	public static EnumAdder enumBuilder(String type, Object... parameterTypes) {
 		if (type == null) throw new NullPointerException("Tried to add onto a null type!");
@@ -243,7 +244,7 @@ public enum ClassTinkerers {
 	 * @param name The name of the entry to return
 	 * @return The entry within type that has {@link Enum#name()} equal to name
 	 *
-	 * @throws NullPointerException If type is null
+	 * @throws NullPointerException If type is {@code null}
 	 * @throws IllegalArgumentException If no entry with the given name can be found in type
 	 */
 	public static <E extends Enum<E>> E getEnum(Class<E> type, String name) {

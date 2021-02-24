@@ -16,8 +16,6 @@ import java.util.function.Supplier;
 
 import org.objectweb.asm.Type;
 
-import net.minecraft.util.Pair;
-
 /**
  * Simple builder to add additional Enum entries repetitively using the given constructor
  *
@@ -25,7 +23,7 @@ import net.minecraft.util.Pair;
  */
 public final class EnumAdder {
 	/**
-	 * Glorified {@link Pair} implementation specifically for {@link EnumAdder}
+	 * Glorified Pair/Tuple implementation specifically for {@link EnumAdder}
 	 *
 	 * @author Chocohead
 	 */
@@ -51,7 +49,7 @@ public final class EnumAdder {
 
 		/**
 		 * @param name The name of the new entry
-		 * @param structClass The class name of the inner class provider for the new entry, maybe be null
+		 * @param structClass The class name of the inner class provider for the new entry, maybe be {@code null}
 		 * @param parameterFactory A factory which produces the parameters to construct the new entry with
 		 *
 		 * @since 1.9
@@ -249,7 +247,7 @@ public final class EnumAdder {
 	 *
 	 * @param parameters The parameters used to construct the Enum entry
 	 *
-	 * @throws NullPointerException If parameters is null
+	 * @throws NullPointerException If parameters is {@code null}
 	 * @throws IllegalArgumentException If the length of parameters is different to parameterTypes
 	 */
 	Object[] checkParameters(Object[] parameters) {
@@ -290,7 +288,7 @@ public final class EnumAdder {
 	/**
 	 * Get whether any of the additions made will subclass the Enum
 	 *
-	 * @return If any of the additions return @{@code true} for {@link EnumAddition#isEnumSubclass()}
+	 * @return If any of the additions return {@code true} for {@link EnumAddition#isEnumSubclass()}
 	 *
 	 * @since 1.9
 	 */
