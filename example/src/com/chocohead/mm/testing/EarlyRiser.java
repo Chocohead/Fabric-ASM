@@ -31,9 +31,9 @@ public class EarlyRiser implements Runnable {
 		ClassTinkerers.enumBuilder("com.chocohead.mm.testing.TestEnum", long.class, int[].class).addEnum("TEST", 0L, new int[0]).build();
 		ClassTinkerers.enumBuilder("com.chocohead.mm.testing.TestEnum", int[].class, long.class).addEnum("TEST_ALSO", new int[0], Long.MAX_VALUE).build();
 		ClassTinkerers.enumBuilder("com.chocohead.mm.testing.TestEnum", double.class, double.class).addEnum("TEST_AS_WELL", 1D, 0D).build();
-		ClassTinkerers.enumBuilder("com.chocohead.mm.testing.TestEnum", new Class[0]).addEnum("TEST_TOO").addEnumSubclass("TEST_THREE", "com.chocohead.mm.testing.TestEnumExtension").build();
+		ClassTinkerers.enumBuilder("com.chocohead.mm.testing.TestEnum").addEnum("TEST_TOO").addEnumSubclass("TEST_THREE", "com.chocohead.mm.testing.TestEnumExtension").build();
 
 		String enchantmentTarget = remapper.mapClassName("intermediary", "net.minecraft.class_1886");
-		ClassTinkerers.enumBuilder(enchantmentTarget, new Class[0]).addEnumSubclass("CAKE", "com.chocohead.mm.testing.LetThemEnchantCake").build();
+		ClassTinkerers.enumBuilder(enchantmentTarget).addEnumSubclass("CAKE", "com.chocohead.mm.testing.LetThemEnchantCake").build();
 	}
 }

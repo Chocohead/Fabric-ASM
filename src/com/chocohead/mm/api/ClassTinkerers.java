@@ -154,6 +154,21 @@ public enum ClassTinkerers {
 	/**
 	 * Create a new {@link EnumAdder} in order to add additional Enum entries to the given type name.
 	 * <p>Nothing will be done if the given Enum type has already been loaded.</p>
+	 *
+	 * @param type The name of the enum to be extended
+	 * @return A builder for which additional entries can be defined
+	 *
+	 * @throws NullPointerException If type is {@code null}
+	 */
+	public static EnumAdder enumBuilder(String type) {
+		if (type == null) throw new NullPointerException("Tried to add onto a null type!");
+
+		return new EnumAdder(type.replace('.', '/'), ArrayUtils.EMPTY_CLASS_ARRAY);
+	}
+
+	/**
+	 * Create a new {@link EnumAdder} in order to add additional Enum entries to the given type name.
+	 * <p>Nothing will be done if the given Enum type has already been loaded.</p>
 	 * <p><b>Will crash if any of the parameter types are from Minecraft to avoid early class loading</b>
 	 *
 	 * @param type The name of the enum to be extended
