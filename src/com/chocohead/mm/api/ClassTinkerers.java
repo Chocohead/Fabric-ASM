@@ -159,6 +159,8 @@ public enum ClassTinkerers {
 	 * @return A builder for which additional entries can be defined
 	 *
 	 * @throws NullPointerException If type is {@code null}
+	 *
+	 * @since 2.2
 	 */
 	public static EnumAdder enumBuilder(String type) {
 		if (type == null) throw new NullPointerException("Tried to add onto a null type!");
