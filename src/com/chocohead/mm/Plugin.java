@@ -145,9 +145,10 @@ public final class Plugin implements IMixinConfigPlugin {
 
 			private void generate(String name, Collection<? extends String> targets) {
 				//System.out.println("Generating " + mixinPackage + name + " with targets " + targets);
+				assert name.indexOf('.') < 0;
 				classGenerators.put('/' + mixinPackage + name + ".class", makeMixinBlob(mixinPackage + name, targets));
 				//ClassTinkerers.define(mixinPackage + name, makeMixinBlob(mixinPackage + name, targets)); ^^^
-				mixins.add(name);
+				mixins.add(name.replace('/', '.'));
 			}
 
 			@Override
