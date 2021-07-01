@@ -73,6 +73,7 @@ public final class EnumExtender {
 			} //Even empty enums have values and valueOf, which by extension means they have a static block to make the (empty) $VALUES field
 			if (clinit == null) throw new IllegalStateException("Unable to find " + node.name + "'s static block");
 
+			MethodNode arrayCreation = clinit;
 			AbstractInsnNode setValues = null, newArray = null, fieldsSet = null;
 			out: for (ListIterator<AbstractInsnNode> it = clinit.instructions.iterator(); it.hasNext();) {
 				AbstractInsnNode insn = it.next();
@@ -80,10 +81,36 @@ public final class EnumExtender {
 				if (insn.getType() == AbstractInsnNode.FIELD_INSN && insn.getOpcode() == Opcodes.PUTSTATIC && valuesField.equals(((FieldInsnNode) insn).name)) {
 					setValues = insn;
 
+					//The values field has to be set to something so the previous instruction will never be null
+					off: if ((insn = insn.getPrevious()).getType() == AbstractInsnNode.METHOD_INSN) {
+						MethodInsnNode minsn = (MethodInsnNode) insn;
+						if (!node.name.equals(minsn.owner) || !minsn.desc.endsWith(")[L" + node.name + ';'))
+							throw new IllegalStateException("Unexpected $VALUES array creator: " + minsn.owner + '#' + minsn.name + minsn.desc);
+
+						for (MethodNode method : node.methods) {
+							if (minsn.name.equals(method.name) && minsn.desc.equals(method.desc)) {
+								arrayCreation = method;
+								fieldsSet = minsn;
+
+								it = method.instructions.iterator(method.instructions.size());
+								for (insn = it.previous(); it.hasPrevious(); insn = it.previous()) {
+									if (insn.getType() == AbstractInsnNode.INSN && insn.getOpcode() == Opcodes.ARETURN) {
+										setValues = insn;
+										break off;
+									}
+								}
+
+								throw new IllegalStateException("$VALUES array creator " + minsn.owner + '#' + minsn.name + minsn.desc + " never returns?!");
+							}
+						}
+
+						throw new IllegalStateException("Unable to find $VALUES array creator: " + minsn.owner + '#' + minsn.name + minsn.desc);
+					}
+
 					for (insn = it.previous(); it.hasPrevious(); insn = it.previous()) {
 						if (insn.getType() == AbstractInsnNode.TYPE_INSN && insn.getOpcode() == Opcodes.ANEWARRAY) {
 							newArray = it.previous();
-							fieldsSet = newArray;
+							if (fieldsSet == null) fieldsSet = newArray;
 							break out;
 						}
 					}
@@ -264,7 +291,7 @@ public final class EnumExtender {
 
 			clinit.instructions.insertBefore(fieldsSet, fieldSetting);
 			clinit.instructions.insertBefore(setValues, arrayFilling);
-			clinit.instructions.set(newArray, instructionForValue(currentOrdinal));
+			arrayCreation.instructions.set(newArray, instructionForValue(currentOrdinal));
 
 			if (builder.hasParameters()) clinit.maxLocals = Math.max(clinit.maxLocals, 1);
 			clinit.maxStack = Math.max(clinit.maxStack, getStackSize(builder.parameterTypes));
