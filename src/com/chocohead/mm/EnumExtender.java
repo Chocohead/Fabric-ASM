@@ -73,7 +73,7 @@ public final class EnumExtender {
 			} //Even empty enums have values and valueOf, which by extension means they have a static block to make the (empty) $VALUES field
 			if (clinit == null) throw new IllegalStateException("Unable to find " + node.name + "'s static block");
 
-			AbstractInsnNode setValues = null, newArray = null;
+			AbstractInsnNode setValues = null, newArray = null, fieldsSet = null;
 			out: for (ListIterator<AbstractInsnNode> it = clinit.instructions.iterator(); it.hasNext();) {
 				AbstractInsnNode insn = it.next();
 
@@ -83,6 +83,7 @@ public final class EnumExtender {
 					for (insn = it.previous(); it.hasPrevious(); insn = it.previous()) {
 						if (insn.getType() == AbstractInsnNode.TYPE_INSN && insn.getOpcode() == Opcodes.ANEWARRAY) {
 							newArray = it.previous();
+							fieldsSet = newArray;
 							break out;
 						}
 					}
@@ -129,89 +130,104 @@ public final class EnumExtender {
 			}
 
 			String constructor = getConstructorDescriptor(builder.parameterTypes);
-			Supplier<String> anonymousClassFactory = builder.willSubclass() ? anonymousClassFactory(node) : null;
+			Supplier<String> anonymousClassFactory;
+			if (builder.willSubclass()) {
+				anonymousClassFactory = anonymousClassFactory(node);
+
+				node.access &= ~Opcodes.ACC_FINAL; //Ensure the type can be subclassed at all
+				for (MethodNode method : node.methods) {
+					if ("<init>".equals(method.name) && constructor.equals(method.desc)) {
+						//Make sure the subclass can use the constructor it wants to
+						method.access &= ~Opcodes.ACC_PRIVATE;
+						break;
+					}
+				}
+			} else {
+				anonymousClassFactory = null;
+			}
+			InsnList fieldSetting = new InsnList();
+			InsnList arrayFilling = new InsnList();
 
 			for (EnumAddition addition : builder.getAdditions()) {
 				node.visitField(Opcodes.ACC_PUBLIC + Opcodes.ACC_FINAL + Opcodes.ACC_STATIC + Opcodes.ACC_ENUM, addition.name, 'L' + node.name + ';', null, null);
 
-				String poolKey = builder.type + '#' + addition.name; //As unique as the field name is
-				InsnList method = new InsnList();
-
 				LabelNode stuffStart;
 				if (builder.hasParameters()) {
-					method.add(new FieldInsnNode(Opcodes.GETSTATIC, "com/chocohead/mm/EnumExtender", "POOL", "Ljava/util/Map;"));
+					String poolKey = builder.type + '#' + addition.name; //As unique as the field name is
+
+					fieldSetting.add(new FieldInsnNode(Opcodes.GETSTATIC, "com/chocohead/mm/EnumExtender", "POOL", "Ljava/util/Map;"));
 					POOL.put(poolKey, addition.getParameters());
-					method.add(new LdcInsnNode(poolKey));
-					method.add(new MethodInsnNode(Opcodes.INVOKEINTERFACE, "java/util/Map", "get", "(Ljava/lang/Object;)Ljava/lang/Object;", true));
-					method.add(new TypeInsnNode(Opcodes.CHECKCAST, "[Ljava/lang/Object;"));
-					method.add(new VarInsnNode(Opcodes.ASTORE, 0));
+					fieldSetting.add(new LdcInsnNode(poolKey));
+					fieldSetting.add(new MethodInsnNode(Opcodes.INVOKEINTERFACE, "java/util/Map", "get", "(Ljava/lang/Object;)Ljava/lang/Object;", true));
+					fieldSetting.add(new TypeInsnNode(Opcodes.CHECKCAST, "[Ljava/lang/Object;"));
+					fieldSetting.add(new VarInsnNode(Opcodes.ASTORE, 0));
 
 					stuffStart = new LabelNode();
-					method.add(stuffStart);
+					fieldSetting.add(stuffStart);
 				} else stuffStart = null;
 
 				String additionType = addition.isEnumSubclass() ? anonymousClassFactory.get() : node.name;
-				method.add(new TypeInsnNode(Opcodes.NEW, additionType));
-				method.add(new InsnNode(Opcodes.DUP));
+				fieldSetting.add(new TypeInsnNode(Opcodes.NEW, additionType));
+				fieldSetting.add(new InsnNode(Opcodes.DUP));
 
-				method.add(new LdcInsnNode(addition.name));
-				method.add(instructionForValue(currentOrdinal));
+				fieldSetting.add(new LdcInsnNode(addition.name));
+				fieldSetting.add(instructionForValue(currentOrdinal));
 
 				for (int i = 0; i < builder.parameterTypes.length; i++) {
-					method.add(new VarInsnNode(Opcodes.ALOAD, 0));
-					method.add(instructionForValue(i));
-					method.add(new InsnNode(Opcodes.AALOAD));
+					fieldSetting.add(new VarInsnNode(Opcodes.ALOAD, 0));
+					fieldSetting.add(instructionForValue(i));
+					fieldSetting.add(new InsnNode(Opcodes.AALOAD));
 
 					Type targetType = builder.parameterTypes[i];
 					switch (targetType.getSort()) {//If the target is primitive, need to cast to the boxed form then unbox
 					case Type.INT:
-						method.add(new TypeInsnNode(Opcodes.CHECKCAST, "java/lang/Integer"));
-						method.add(new MethodInsnNode(Opcodes.INVOKEVIRTUAL, "java/lang/Integer", "intValue", "()I", false));
+						fieldSetting.add(new TypeInsnNode(Opcodes.CHECKCAST, "java/lang/Integer"));
+						fieldSetting.add(new MethodInsnNode(Opcodes.INVOKEVIRTUAL, "java/lang/Integer", "intValue", "()I", false));
 						break;
 
 					case Type.VOID:
 						throw new AssertionError("Constructor takes a primitive void as a parameter?");
 
 					case Type.BOOLEAN:
-						method.add(new TypeInsnNode(Opcodes.CHECKCAST, "java/lang/Boolean"));
-						method.add(new MethodInsnNode(Opcodes.INVOKEVIRTUAL, "java/lang/Boolean", "booleanValue", "()Z", false));
+						fieldSetting.add(new TypeInsnNode(Opcodes.CHECKCAST, "java/lang/Boolean"));
+						fieldSetting.add(new MethodInsnNode(Opcodes.INVOKEVIRTUAL, "java/lang/Boolean", "booleanValue", "()Z", false));
 						break;
 
 					case Type.BYTE:
-						method.add(new TypeInsnNode(Opcodes.CHECKCAST, "java/lang/Byte"));
-						method.add(new MethodInsnNode(Opcodes.INVOKEVIRTUAL, "java/lang/Byte", "byteValue", "()B", false));
+						fieldSetting.add(new TypeInsnNode(Opcodes.CHECKCAST, "java/lang/Byte"));
+						fieldSetting.add(new MethodInsnNode(Opcodes.INVOKEVIRTUAL, "java/lang/Byte", "byteValue", "()B", false));
 						break;
 
 					case Type.CHAR:
-						method.add(new TypeInsnNode(Opcodes.CHECKCAST, "java/lang/Character"));
-						method.add(new MethodInsnNode(Opcodes.INVOKEVIRTUAL, "java/lang/Character", "charValue", "()C", false));
+						fieldSetting.add(new TypeInsnNode(Opcodes.CHECKCAST, "java/lang/Character"));
+						fieldSetting.add(new MethodInsnNode(Opcodes.INVOKEVIRTUAL, "java/lang/Character", "charValue", "()C", false));
 						break;
 
 					case Type.SHORT:
-						method.add(new TypeInsnNode(Opcodes.CHECKCAST, "java/lang/Short"));
-						method.add(new MethodInsnNode(Opcodes.INVOKEVIRTUAL, "java/lang/Short", "shortValue", "()S", false));
+						fieldSetting.add(new TypeInsnNode(Opcodes.CHECKCAST, "java/lang/Short"));
+						fieldSetting.add(new MethodInsnNode(Opcodes.INVOKEVIRTUAL, "java/lang/Short", "shortValue", "()S", false));
 						break;
 
 					case Type.DOUBLE:
-						method.add(new TypeInsnNode(Opcodes.CHECKCAST, "java/lang/Double"));
-						method.add(new MethodInsnNode(Opcodes.INVOKEVIRTUAL, "java/lang/Double", "doubleValue", "()D", false));
+						fieldSetting.add(new TypeInsnNode(Opcodes.CHECKCAST, "java/lang/Double"));
+						fieldSetting.add(new MethodInsnNode(Opcodes.INVOKEVIRTUAL, "java/lang/Double", "doubleValue", "()D", false));
 						break;
 
 					case Type.FLOAT:
-						method.add(new TypeInsnNode(Opcodes.CHECKCAST, "java/lang/Float"));
-						method.add(new MethodInsnNode(Opcodes.INVOKEVIRTUAL, "java/lang/Float", "floatValue", "()F", false));
+						fieldSetting.add(new TypeInsnNode(Opcodes.CHECKCAST, "java/lang/Float"));
+						fieldSetting.add(new MethodInsnNode(Opcodes.INVOKEVIRTUAL, "java/lang/Float", "floatValue", "()F", false));
 						break;
 
 					case Type.LONG:
-						method.add(new TypeInsnNode(Opcodes.CHECKCAST, "java/lang/Long"));
-						method.add(new MethodInsnNode(Opcodes.INVOKEVIRTUAL, "java/lang/Long", "longValue", "()J", false));
+						fieldSetting.add(new TypeInsnNode(Opcodes.CHECKCAST, "java/lang/Long"));
+						fieldSetting.add(new MethodInsnNode(Opcodes.INVOKEVIRTUAL, "java/lang/Long", "longValue", "()J", false));
 						break;
 
 					case Type.OBJECT:
 						if ("java/lang/Object".equals(targetType.getInternalName())) break;
 					case Type.ARRAY:
 						//Need to case to an object (that isn't Object which we already are)
-						method.add(new TypeInsnNode(Opcodes.CHECKCAST, targetType.getInternalName()));
+						fieldSetting.add(new TypeInsnNode(Opcodes.CHECKCAST, targetType.getInternalName()));
 						break;
 
 					case Type.METHOD:
@@ -222,51 +238,36 @@ public final class EnumExtender {
 					}
 				}
 
-				method.add(new MethodInsnNode(Opcodes.INVOKESPECIAL, additionType, "<init>", constructor, false));
-				method.add(new FieldInsnNode(Opcodes.PUTSTATIC, node.name, addition.name, 'L' + node.name + ';'));
+				fieldSetting.add(new MethodInsnNode(Opcodes.INVOKESPECIAL, additionType, "<init>", constructor, false));
+				fieldSetting.add(new FieldInsnNode(Opcodes.PUTSTATIC, node.name, addition.name, 'L' + node.name + ';'));
 
 				if (builder.hasParameters()) {
 					LabelNode stuffEnd = new LabelNode();
-					method.add(stuffEnd);
+					fieldSetting.add(stuffEnd);
 
 					assert stuffStart != null;
 					clinit.localVariables.add(new LocalVariableNode("stuff", "[Ljava/lang/Object;", null, stuffStart, stuffEnd, 0));
 				}
 
-				clinit.instructions.insertBefore(newArray, method);
-
 
 				if (addition.isEnumSubclass()) {
 					ClassTinkerers.define(additionType, EnumSubclasser.defineAnonymousSubclass(node, addition, additionType, constructor));
 					node.innerClasses.add(new InnerClassNode(additionType, node.name, additionType.substring(node.name.length() + 1), Opcodes.ACC_ENUM));
-
-					for (MethodNode m : node.methods) {
-						if ("<init>".equals(m.name) && constructor.equals(m.desc)) {
-							//Make sure the subclass can use the constructor it wants to
-							m.access = m.access & ~Opcodes.ACC_PRIVATE;
-							break;
-						}
-					}
 				}
 
 
-				method = new InsnList();
-
-				method.add(new InsnNode(Opcodes.DUP));
-				method.add(instructionForValue(currentOrdinal++));
-				method.add(new FieldInsnNode(Opcodes.GETSTATIC, node.name, addition.name, 'L' + node.name + ';'));
-				method.add(new InsnNode(Opcodes.AASTORE));
-
-				clinit.instructions.insertBefore(setValues, method);
+				arrayFilling.add(new InsnNode(Opcodes.DUP));
+				arrayFilling.add(instructionForValue(currentOrdinal++));
+				arrayFilling.add(new FieldInsnNode(Opcodes.GETSTATIC, node.name, addition.name, 'L' + node.name + ';'));
+				arrayFilling.add(new InsnNode(Opcodes.AASTORE));
 			}
 
+			clinit.instructions.insertBefore(fieldsSet, fieldSetting);
+			clinit.instructions.insertBefore(setValues, arrayFilling);
 			clinit.instructions.set(newArray, instructionForValue(currentOrdinal));
+
 			if (builder.hasParameters()) clinit.maxLocals = Math.max(clinit.maxLocals, 1);
 			clinit.maxStack = Math.max(clinit.maxStack, getStackSize(builder.parameterTypes));
-
-			if ((node.access & Opcodes.ACC_FINAL) != 0 && builder.willSubclass()) {
-				node.access = node.access & ~Opcodes.ACC_FINAL;
-			}
 		};
 	}
 
