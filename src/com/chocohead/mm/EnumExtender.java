@@ -82,8 +82,8 @@ public final class EnumExtender {
 					setValues = insn;
 
 					//The values field has to be set to something so the previous instruction will never be null
-					off: if ((insn = insn.getPrevious()).getType() == AbstractInsnNode.METHOD_INSN) {
-						MethodInsnNode minsn = (MethodInsnNode) insn;
+					off: if (insn.getPrevious().getType() == AbstractInsnNode.METHOD_INSN) {
+						MethodInsnNode minsn = (MethodInsnNode) insn.getPrevious();
 						if (!node.name.equals(minsn.owner) || !minsn.desc.endsWith(")[L" + node.name + ';'))
 							throw new IllegalStateException("Unexpected $VALUES array creator: " + minsn.owner + '#' + minsn.name + minsn.desc);
 
