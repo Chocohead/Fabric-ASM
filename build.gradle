@@ -4,14 +4,18 @@ buildscript {
 			name = "Fabric"
 			url = "https://maven.fabricmc.net/"
 		}
-		mavenCentral()
+		jcenter()
+		maven {
+			name = "Forge"
+			url = "https://files.minecraftforge.net/maven/"
+		}
 		maven { 
 			name = "Jitpack"
 			url 'https://jitpack.io/'
 		}
 	}
 	dependencies {
-        classpath 'com.github.Chocohead:fabric-loom:66ed9fe'
+        classpath 'com.github.Chocohead:fabric-loom:415c6b'
 	}
 }
 
