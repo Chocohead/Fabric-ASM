@@ -1,21 +1,17 @@
 buildscript {
 	repositories {
-		jcenter()
 		maven {
 			name = "Fabric"
 			url = "https://maven.fabricmc.net/"
 		}
-		maven {
-			name = "Forge"
-			url = "https://files.minecraftforge.net/maven/"
-		}
+		mavenCentral()
 		maven { 
 			name = "Jitpack"
 			url 'https://jitpack.io/'
 		}
 	}
 	dependencies {
-        classpath 'com.github.Chocohead:fabric-loom:415c6b'
+        classpath 'com.github.Chocohead:fabric-loom:66ed9fe'
 	}
 }
 
@@ -26,7 +22,7 @@ sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
 archivesBaseName = "Manningham Mills"
-version = "2.2"
+version = "2.3"
 
 minecraft {
 	refmapName = "mixins.mm.refmap.json"
