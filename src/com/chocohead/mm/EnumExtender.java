@@ -176,6 +176,10 @@ public final class EnumExtender {
 			InsnList arrayFilling = new InsnList();
 
 			for (EnumAddition addition : builder.getAdditions()) {
+				String additionType = addition.isEnumSubclass() ? anonymousClassFactory.get() : node.name;
+				if (addition.isEnumSubclass() && node.permittedSubclasses != null) {
+					node.permittedSubclasses.add(additionType);
+				}
 				node.visitField(Opcodes.ACC_PUBLIC + Opcodes.ACC_FINAL + Opcodes.ACC_STATIC + Opcodes.ACC_ENUM, addition.name, 'L' + node.name + ';', null, null);
 
 				LabelNode stuffStart;
@@ -193,7 +197,6 @@ public final class EnumExtender {
 					fieldSetting.add(stuffStart);
 				} else stuffStart = null;
 
-				String additionType = addition.isEnumSubclass() ? anonymousClassFactory.get() : node.name;
 				fieldSetting.add(new TypeInsnNode(Opcodes.NEW, additionType));
 				fieldSetting.add(new InsnNode(Opcodes.DUP));
 
