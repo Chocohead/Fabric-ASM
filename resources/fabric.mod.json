@@ -21,7 +21,7 @@
 		]
 	},
 	"depends": {
-		"fabricloader": ">=0.7.0"
+		"fabricloader": ">=0.10.0"
 	},
 	"mixins": [{
 		"config": "mixins.mm.json"

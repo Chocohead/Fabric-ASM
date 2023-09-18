@@ -15,7 +15,7 @@ buildscript {
 		}
 	}
 	dependencies {
-        classpath 'com.github.Chocohead:fabric-loom:415c6b'
+        classpath 'com.github.Chocohead:fabric-loom:49aa217'
 	}
 }
 
@@ -34,9 +34,9 @@ minecraft {
 }
 
 dependencies {
-	minecraft "com.mojang:minecraft:1.14 Pre-Release 3"
-	mappings "net.fabricmc:yarn:1.14 Pre-Release 3+build.1:tiny@gz"
-	modCompile "net.fabricmc:fabric-loader:0.7.0+build.171"
+	minecraft "com.mojang:minecraft:1.14"
+	mappings "net.fabricmc:yarn:1.14+build.1:tiny@gz"
+	modCompile "net.fabricmc:fabric-loader:0.10.0+build.208"
 }
 
 sourceSets {

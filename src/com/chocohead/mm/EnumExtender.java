@@ -38,7 +38,7 @@ import com.chocohead.mm.api.EnumAdder;
 import com.chocohead.mm.api.EnumAdder.EnumAddition;
 
 public final class EnumExtender {
-	public static final Map<String, Object[]> POOL = new HashMap<>();
+	public static final Map<String, Supplier<Object[]>> POOL = new HashMap<>();
 
 
 	static Consumer<ClassNode> makeEnumExtender(EnumAdder builder) {
@@ -176,6 +176,10 @@ public final class EnumExtender {
 			InsnList arrayFilling = new InsnList();
 
 			for (EnumAddition addition : builder.getAdditions()) {
+				String additionType = addition.isEnumSubclass() ? anonymousClassFactory.get() : node.name;
+				if (addition.isEnumSubclass() && node.permittedSubclasses != null) {
+					node.permittedSubclasses.add(additionType);
+				}
 				node.visitField(Opcodes.ACC_PUBLIC + Opcodes.ACC_FINAL + Opcodes.ACC_STATIC + Opcodes.ACC_ENUM, addition.name, 'L' + node.name + ';', null, null);
 
 				LabelNode stuffStart;
@@ -186,6 +190,8 @@ public final class EnumExtender {
 					POOL.put(poolKey, addition.getParameters());
 					fieldSetting.add(new LdcInsnNode(poolKey));
 					fieldSetting.add(new MethodInsnNode(Opcodes.INVOKEINTERFACE, "java/util/Map", "get", "(Ljava/lang/Object;)Ljava/lang/Object;", true));
+					fieldSetting.add(new TypeInsnNode(Opcodes.CHECKCAST, "java/util/function/Supplier"));
+					fieldSetting.add(new MethodInsnNode(Opcodes.INVOKEINTERFACE, "java/util/function/Supplier", "get", "()Ljava/lang/Object;", true));
 					fieldSetting.add(new TypeInsnNode(Opcodes.CHECKCAST, "[Ljava/lang/Object;"));
 					fieldSetting.add(new VarInsnNode(Opcodes.ASTORE, 0));
 
@@ -193,7 +199,6 @@ public final class EnumExtender {
 					fieldSetting.add(stuffStart);
 				} else stuffStart = null;
 
-				String additionType = addition.isEnumSubclass() ? anonymousClassFactory.get() : node.name;
 				fieldSetting.add(new TypeInsnNode(Opcodes.NEW, additionType));
 				fieldSetting.add(new InsnNode(Opcodes.DUP));
 

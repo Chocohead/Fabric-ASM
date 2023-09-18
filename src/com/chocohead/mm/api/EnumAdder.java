@@ -67,8 +67,8 @@ public final class EnumAdder {
 		 *
 		 * @throws IllegalArgumentException If the factory produces an invalid parameter array
 		 */
-		public Object[] getParameters() {
-			return checkParameters(parameterFactory.get());
+		public Supplier<Object[]> getParameters() {
+			return () -> checkParameters(parameterFactory.get());
 		}
 
 		/**
