@@ -15,11 +15,12 @@ buildscript {
 		}
 	}
 	dependencies {
-        classpath 'com.github.Chocohead:fabric-loom:415c6b'
+		classpath 'com.github.Chocohead:fabric-loom:f7d1318'
 	}
 }
 
 apply plugin: "fabric-loom"
+apply plugin: "maven-publish"
 import net.fabricmc.loom.task.RemappingJar;
 
 sourceCompatibility = 1.8
@@ -27,6 +28,7 @@ targetCompatibility = 1.8
 
 archivesBaseName = "Manningham Mills"
 version = "2.3"
+group = "com.chocohead"
 
 minecraft {
 	refmapName = "mixins.mm.refmap.json"
@@ -34,8 +36,8 @@ minecraft {
 }
 
 dependencies {
-	minecraft "com.mojang:minecraft:1.14 Pre-Release 3"
-	mappings "net.fabricmc:yarn:1.14 Pre-Release 3+build.1:tiny@gz"
+	minecraft "com.mojang:minecraft:1.14"
+	mappings "net.fabricmc:yarn:1.14+build.1:tiny@gz"
 	modCompile "net.fabricmc:fabric-loader:0.7.0+build.171"
 }
 
@@ -82,17 +84,21 @@ task exampleSourcesJar(type: RemappingJar, dependsOn: exampleClasses) {
 
 build.dependsOn exampleJar, exampleSourcesJar
 
-artifacts {
-	archives(remapJar) {
-		builtBy remapJar
-	}
-	archives(exampleJar) {
-		builtBy exampleJar
-	}
-	archives(sourcesJar) {
-		builtBy sourcesJar
-	}
-	archives(exampleSourcesJar) {
-		builtBy exampleSourcesJar
+publishing {
+	publications {
+		mavenJava(MavenPublication) {
+			artifact(remapJar) {
+				builtBy remapJar
+			}
+			artifact(exampleJar) {
+				builtBy exampleJar
+			}
+			artifact(sourcesJar) {
+				builtBy sourcesJar
+			}
+			artifact(exampleSourcesJar) {
+				builtBy exampleSourcesJar
+			}
+		}
 	}
 }
